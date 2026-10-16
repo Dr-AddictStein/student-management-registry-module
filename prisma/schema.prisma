@@ -1,0 +1,144 @@
+// Student Management System — Registry module
+//
+// The Registry Administrator works with four records: who is enrolled,
+// what they owe, what they have submitted, and which grades are released.
+// Balances and lateness are derived at read time so the dashboard stays current.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EnrolmentStatus {
+  ENROLLED
+  DEFERRED
+  WITHDRAWN
+  COMPLETED
+}
+
+// Highest band that applies: Distinction ≥ 70, Merit ≥ 60, Pass ≥ 40, otherwise Fail.
+enum Classification {
+  FAIL
+  PASS
+  MERIT
+  DISTINCTION
+}
+
+model Programme {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  feeAmount Decimal  @db.Decimal(10, 2)
+  modules   Module[]
+  students  Student[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Module {
+  id          String       @id @default(cuid())
+  code        String
+  name        String
+  programmeId String
+  programme   Programme    @relation(fields: [programmeId], references: [id], onDelete: Restrict)
+  assessments Assessment[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([programmeId, code])
+}
+
+model Student {
+  id              String          @id @default(cuid())
+  // SMS-{year}-{sequence}, for example SMS-2025-0001. Assigned by the registry, not the user.
+  studentNumber   String          @unique
+  fullName        String
+  email           String          @unique
+  dateOfBirth     DateTime        @db.Date
+  academicYear    String
+  enrolmentStatus EnrolmentStatus @default(ENROLLED)
+  // Snapshotted from the programme fee at enrolment so later fee changes do not rewrite history.
+  assignedFee     Decimal         @db.Decimal(10, 2)
+  // Outstanding balance becomes overdue once this date has passed.
+  feeDueDate      DateTime        @db.Date
+  programmeId     String
+  programme       Programme       @relation(fields: [programmeId], references: [id], onDelete: Restrict)
+  payments        Payment[]
+  submissions     Submission[]
+  results         Result[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([fullName])
+  @@index([enrolmentStatus])
+  @@index([programmeId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  amount    Decimal  @db.Decimal(10, 2)
+  paidOn    DateTime @db.Date
+  reference String   @unique
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model Assessment {
+  id          String       @id @default(cuid())
+  title       String
+  deadline    DateTime
+  moduleId    String
+  module      Module       @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+  submissions Submission[]
+  results     Result[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([deadline])
+  @@index([moduleId])
+}
+
+// One row per student per assessment. A resubmission updates this row
+// rather than inserting another. isLate is stored so the flag survives
+// if the deadline is later edited.
+model Submission {
+  id               String     @id @default(cuid())
+  assessmentId     String
+  studentId        String
+  assessment       Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student          Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  originalFileName String
+  storedFileName   String
+  mimeType         String
+  sizeBytes        Int
+  submittedAt      DateTime
+  isLate           Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([assessmentId, studentId])
+}
+
+// A grade exists as soon as staff enter it. Students only see rows where published is true.
+model Result {
+  id             String         @id @default(cuid())
+  assessmentId   String
+  studentId      String
+  assessment     Assessment     @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  student        Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  grade          Int
+  classification Classification
+  published      Boolean        @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([assessmentId, studentId])
+}

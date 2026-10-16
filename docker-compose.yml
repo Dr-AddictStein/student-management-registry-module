@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: sms-registry-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sms_registry
+    ports:
+      - "5432:5432"
+    volumes:
+      - sms_pg_data:/var/lib/postgresql/data
+
+volumes:
+  sms_pg_data:
