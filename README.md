@@ -2,7 +2,7 @@
 
 A registry module for a student management system. Staff enrol students, track fees, open assessments, and publish results. Students submit work and see only the grades that have been released.
 
-The screens are in place. Enrolment, payments, uploads, and grading are not wired up yet.
+Students register themselves and sign in to a student dashboard. Registry staff sign in with a fixed account. Payments, uploads, and grading are not wired up yet.
 
 ## Stack
 
@@ -23,11 +23,19 @@ npm run db:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
 `npm install` generates the Prisma client. If you change `prisma/schema.prisma`, run `npm run db:generate` again.
 
-Use the **Staff / Student** switch in the sidebar to move between the two views. The choice is stored in the browser. It is not an account system.
+Open [http://localhost:3000](http://localhost:3000). You are sent to the sign-in page.
+
+### Accounts
+
+Staff cannot register. Their email and password come from `STAFF_EMAIL` and `STAFF_PASSWORD` in `.env`.
+
+Students register at `/register` with their name, email, password, date of birth, programme, and academic year. The account is created as Enrolled. The registry issues the student ID and copies the programme fee, due 30 days later. A student must be at least 16.
+
+The seed creates six students who can all sign in with the password `Password123!`. One of them is `amira.hassan@example.edu`.
+
+Sessions last 7 days. Use **Log out** in the sidebar to end one.
 
 ### Scripts
 
@@ -47,6 +55,9 @@ Copy `.env.example` to `.env`. Do not commit `.env`.
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string used by Prisma |
+| `STAFF_EMAIL` | Fixed email for the registry desk |
+| `STAFF_PASSWORD` | Fixed password for the registry desk |
+| `SESSION_SECRET` | Signs the login cookie. At least 32 characters |
 
 The example matches the Docker Compose database:
 
@@ -92,4 +103,4 @@ Uploaded files will live in `storage/`, which is gitignored.
 
 ## AI usage
 
-The project skeleton — Next.js app, Prisma schema, seed script, and registry shell — was set up in Cursor with Grok. The schema and the empty screens follow the four registry workflows. Feature behaviour still has to be built, and this section should be updated as that work is done so it stays an accurate account of what AI produced and what was decided by hand.
+The project skeleton and the sign-in flow were set up in Cursor with Grok. Student registration, the fixed staff account, and the separate dashboards were implemented with that assistance. Later features should be added to this note so it stays an accurate account of what was produced with AI and what was decided by hand.

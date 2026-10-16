@@ -11,9 +11,10 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react"
+import { logout } from "@/lib/auth-actions"
+import type { Session } from "@/lib/session-token"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useRole, type RegistryRole } from "@/components/role-provider"
 import { cn } from "@/lib/utils"
 
 const staffNav: NavItem[] = [
@@ -38,9 +39,14 @@ type NavItem = {
   icon: LucideIcon
 }
 
-export function RegistryShell({ children }: { children: React.ReactNode }) {
-  const { role, setRole } = useRole()
-  const items = role === "student" ? studentNav : staffNav
+export function RegistryShell({
+  session,
+  children,
+}: {
+  session: Session
+  children: React.ReactNode
+}) {
+  const items = session.role === "student" ? studentNav : staffNav
 
   return (
     <div className="flex min-h-full flex-1 flex-col md:flex-row">
@@ -59,37 +65,28 @@ export function RegistryShell({ children }: { children: React.ReactNode }) {
         </Suspense>
 
         <div className="mt-auto border-t border-sidebar-border px-4 py-4">
-          <p className="mb-2 text-[11px] font-medium tracking-wide text-sidebar-foreground/60 uppercase">
-            Viewing as
-          </p>
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-black/20 p-1">
-            <RoleButton
-              current={role}
-              value="staff"
-              onSelect={setRole}
+          <p className="truncate text-sm font-medium">{session.name}</p>
+          <p className="truncate text-xs text-sidebar-foreground/60">{session.email}</p>
+          <form action={logout} className="mt-3">
+            <Button
+              type="submit"
+              size="sm"
+              variant="secondary"
+              className="w-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
             >
-              Staff
-            </RoleButton>
-            <RoleButton
-              current={role}
-              value="student"
-              onSelect={setRole}
-            >
-              Student
-            </RoleButton>
-          </div>
+              Log out
+            </Button>
+          </form>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b px-4 py-3 md:px-8">
           <p className="text-sm text-muted-foreground">
-            {role === "staff"
-              ? "Registry administrator"
-              : "Student portal"}
+            {session.role === "staff" ? "Registry administrator" : "Student portal"}
           </p>
           <Badge variant="secondary">
-            {role === "staff" ? "Staff view" : "Student view"}
+            {session.role === "staff" ? "Staff" : "Student"}
           </Badge>
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 md:px-8">
@@ -126,36 +123,5 @@ function ShellNav({ items }: { items: NavItem[] }) {
         )
       })}
     </nav>
-  )
-}
-
-function RoleButton({
-  current,
-  value,
-  onSelect,
-  children,
-}: {
-  current: RegistryRole
-  value: RegistryRole
-  onSelect: (role: RegistryRole) => void
-  children: React.ReactNode
-}) {
-  const selected = current === value
-
-  return (
-    <Button
-      type="button"
-      size="sm"
-      variant={selected ? "secondary" : "ghost"}
-      className={cn(
-        "h-7 text-sidebar-foreground",
-        !selected && "hover:bg-white/10 hover:text-sidebar-foreground",
-        selected && "bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/90",
-      )}
-      aria-pressed={selected}
-      onClick={() => onSelect(value)}
-    >
-      {children}
-    </Button>
   )
 }

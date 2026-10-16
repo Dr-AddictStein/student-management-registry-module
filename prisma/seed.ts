@@ -1,7 +1,10 @@
 import "dotenv/config"
+import { hash } from "bcryptjs"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { classifyGrade, formatStudentNumber } from "../src/lib/domain"
+
+const DEMO_STUDENT_PASSWORD = "Password123!"
 
 const connectionString = process.env.DATABASE_URL
 
@@ -16,6 +19,8 @@ const prisma = new PrismaClient({
 const day = (isoDate: string) => new Date(`${isoDate}T00:00:00.000Z`)
 
 async function main() {
+  const passwordHash = await hash(DEMO_STUDENT_PASSWORD, 12)
+
   await prisma.result.deleteMany()
   await prisma.submission.deleteMany()
   await prisma.payment.deleteMany()
@@ -95,6 +100,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 1),
       fullName: "Amira Hassan",
       email: "amira.hassan@example.edu",
+      passwordHash,
       dateOfBirth: day("2004-03-12"),
       academicYear: "2025/26",
       enrolmentStatus: "ENROLLED",
@@ -109,6 +115,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 2),
       fullName: "Jonah Adeyemi",
       email: "jonah.adeyemi@example.edu",
+      passwordHash,
       dateOfBirth: day("2003-11-02"),
       academicYear: "2025/26",
       enrolmentStatus: "ENROLLED",
@@ -123,6 +130,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 3),
       fullName: "Priya Shah",
       email: "priya.shah@example.edu",
+      passwordHash,
       dateOfBirth: day("2005-01-19"),
       academicYear: "2025/26",
       enrolmentStatus: "DEFERRED",
@@ -137,6 +145,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 4),
       fullName: "Luca Moretti",
       email: "luca.moretti@example.edu",
+      passwordHash,
       dateOfBirth: day("2002-07-30"),
       academicYear: "2025/26",
       enrolmentStatus: "WITHDRAWN",
@@ -151,6 +160,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 5),
       fullName: "Elena Kowalska",
       email: "elena.kowalska@example.edu",
+      passwordHash,
       dateOfBirth: day("2001-05-08"),
       academicYear: "2025/26",
       enrolmentStatus: "COMPLETED",
@@ -165,6 +175,7 @@ async function main() {
       studentNumber: formatStudentNumber(2025, 6),
       fullName: "Noah Bennett",
       email: "noah.bennett@example.edu",
+      passwordHash,
       dateOfBirth: day("2004-09-21"),
       academicYear: "2025/26",
       enrolmentStatus: "ENROLLED",
