@@ -2,7 +2,7 @@
 
 A registry module for a student management system. Staff enrol students, track fees, open assessments, and publish results. Students submit work and see only the grades that have been released.
 
-Students register themselves and sign in to a student dashboard. Registry staff sign in with a fixed account. Payments, uploads, and grading are not wired up yet.
+Students register themselves and sign in to a student dashboard. Registry staff sign in with a fixed account and create programmes, modules, students, assessments, payments, and grades in the app. File upload is not wired up yet.
 
 ## Stack
 

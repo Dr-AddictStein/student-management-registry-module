@@ -30,7 +30,7 @@ async function RegisterContent() {
       </p>
       {programmes.length === 0 ? (
         <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-          No programmes are in the register yet. Run the seed script, then come back.
+          No programmes are open for registration yet. The registry adds programmes before a student can sign up.
         </p>
       ) : (
         <RegisterForm

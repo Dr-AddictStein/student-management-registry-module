@@ -3,6 +3,7 @@ import {
   formatAcademicYear,
   formatStudentNumber,
   parseAcademicYear,
+  type EnrolmentStatus,
 } from "@/lib/domain"
 import { prisma } from "@/lib/prisma"
 
@@ -15,6 +16,8 @@ type NewStudent = {
   dateOfBirth: Date
   academicYear: string
   programmeId: string
+  enrolmentStatus?: EnrolmentStatus
+  feeDueDate?: Date
 }
 
 export async function createStudent(input: NewStudent) {
@@ -51,9 +54,9 @@ export async function createStudent(input: NewStudent) {
             passwordHash: input.passwordHash,
             dateOfBirth: input.dateOfBirth,
             academicYear,
-            enrolmentStatus: "ENROLLED",
+            enrolmentStatus: input.enrolmentStatus ?? "ENROLLED",
             assignedFee: programme.feeAmount,
-            feeDueDate: feeDueFrom(),
+            feeDueDate: input.feeDueDate ?? feeDueFrom(),
             programmeId: programme.id,
           },
           include: { programme: true },

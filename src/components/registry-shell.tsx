@@ -6,7 +6,9 @@ import { Suspense } from "react"
 import {
   FileText,
   GraduationCap,
+  Layers,
   LayoutDashboard,
+  Library,
   Users,
   Wallet,
   type LucideIcon,
@@ -19,6 +21,8 @@ import { cn } from "@/lib/utils"
 
 const staffNav: NavItem[] = [
   { href: "/", label: "Registry", icon: LayoutDashboard },
+  { href: "/programmes", label: "Programmes", icon: Library },
+  { href: "/modules", label: "Modules", icon: Layers },
   { href: "/students", label: "Students", icon: Users },
   { href: "/fees", label: "Fees", icon: Wallet },
   { href: "/assessments", label: "Assessments", icon: FileText },
