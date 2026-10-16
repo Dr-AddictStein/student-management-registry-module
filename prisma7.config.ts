@@ -3,6 +3,17 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// Neon’s dashboard URL is the pooled host (`-pooler`). Migrate needs the
+// direct host, and the schema engine does not use channel_binding.
+function migrationUrl(value: string | undefined) {
+  if (!value) return value;
+
+  const url = new URL(value);
+  url.hostname = url.hostname.replace("-pooler.", ".");
+  url.searchParams.delete("channel_binding");
+  return url.toString();
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +21,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    url: migrationUrl(process.env["DATABASE_URL"]),
   },
 });
