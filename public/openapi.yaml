@@ -1,0 +1,109 @@
+openapi: 3.0.3
+info:
+  title: SMS Registry HTTP API
+  version: 0.1.0
+  description: |
+    HTTP routes for the Student Management System registry module.
+
+    Sign-in, registration, and registry changes are Next.js Server Actions
+    submitted by the screens. They are not separate REST resources, so they
+    are not listed as paths here. The action reference is on `/docs`.
+
+    A missing session is redirected to `/login` before these routes run,
+    except `GET /api/logout`, which is public.
+  contact:
+    name: SMS Registry
+servers:
+  - url: http://localhost:3000
+    description: Local development
+tags:
+  - name: Session
+    description: Cookie session named `sms_session`.
+  - name: Submissions
+    description: Download a stored PDF or DOCX.
+paths:
+  /api/logout:
+    get:
+      tags: [Session]
+      operationId: logout
+      summary: End the current session
+      description: |
+        Clears the `sms_session` cookie and redirects to `/login`.
+        This route is public so a session can be ended without a valid token.
+      security: []
+      responses:
+        "307":
+          description: Session cleared. Follow `Location` to the sign-in page.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /login
+            Set-Cookie:
+              schema:
+                type: string
+              description: Expires `sms_session`.
+  /api/submissions/{id}:
+    get:
+      tags: [Submissions]
+      operationId: downloadSubmission
+      summary: Download a submission file
+      description: |
+        Staff can download any submission. A student can download only their own.
+        Seeded rows point at file names that are not on disk, so those downloads
+        return 404 until a real file is uploaded.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Submission id.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The stored PDF or DOCX.
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                enum:
+                  - application/pdf
+                  - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+                  - application/octet-stream
+            Content-Disposition:
+              schema:
+                type: string
+              description: Attachment, using the original file name.
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema:
+                type: string
+                format: binary
+        "307":
+          description: No session. Redirect to `/login`.
+        "403":
+          description: A student asked for another student's file.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: You can only download your own submission.
+        "404":
+          description: Unknown submission, or the file is not on disk.
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sms_session
+      description: HTTP-only session cookie. Issued by the sign-in and registration actions. Valid for 7 days.
