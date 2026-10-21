@@ -39,7 +39,7 @@ export function RecordModal({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        className="m-auto w-[min(52rem,calc(100%-2rem))] max-h-[min(42rem,calc(100%-2rem))] overflow-y-auto rounded-xl border border-border bg-popover p-0 text-popover-foreground shadow-lg backdrop:bg-black/50"
+        className="m-auto w-[min(52rem,calc(100%-2rem))] max-h-[min(42rem,calc(100%-2rem))] overflow-y-auto rounded-xl border border-border bg-popover p-0 text-left whitespace-normal text-popover-foreground shadow-lg backdrop:bg-black/50"
         onClose={() => setOpen(false)}
         onClick={(event) => {
           if (event.target === event.currentTarget) setOpen(false)

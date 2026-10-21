@@ -1,5 +1,7 @@
 import { cn } from "cn"
 
+const fieldClass = "flex min-w-0 flex-col items-stretch gap-1.5 text-left whitespace-normal"
+
 export function Field({
   label,
   htmlFor,
@@ -13,7 +15,7 @@ export function Field({
 }) {
   if (htmlFor) {
     return (
-      <div className={cn("space-y-1.5", className)}>
+      <div className={cn(fieldClass, className)}>
         <label htmlFor={htmlFor} className="text-sm font-medium">
           {label}
         </label>
@@ -23,7 +25,7 @@ export function Field({
   }
 
   return (
-    <label className={cn("block space-y-1.5", className)}>
+    <label className={cn(fieldClass, className)}>
       <span className="text-sm font-medium">{label}</span>
       {children}
     </label>
