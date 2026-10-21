@@ -1,8 +1,10 @@
 "use client"
 
 import { useActionState } from "react"
+import { Field, FormError, NativeSelect } from "@/components/form-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { ENROLMENT_STATUSES, ENROLMENT_STATUS_LABELS, type EnrolmentStatus } from "@/lib/domain"
 import {
   saveAssessment,
@@ -13,9 +15,6 @@ import {
   saveStudent,
   type FormState,
 } from "@/lib/registry-actions"
-
-const selectClass =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
 
 export function ProgrammeForm({
   programme,
@@ -58,7 +57,7 @@ export function ModuleForm({
       <FormError message={state?.error} />
       <input type="hidden" name="id" value={module?.id ?? ""} />
       <Field label="Programme" className="sm:col-span-2">
-        <select name="programmeId" defaultValue={module?.programmeId ?? ""} required className={selectClass}>
+        <NativeSelect name="programmeId" defaultValue={module?.programmeId ?? ""} required>
           <option value="" disabled>
             Choose a programme
           </option>
@@ -67,7 +66,7 @@ export function ModuleForm({
               {programme.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Code">
         <Input name="code" defaultValue={module?.code} required />
@@ -115,10 +114,10 @@ export function StudentForm({
         <Input name="email" type="email" defaultValue={student?.email} required />
       </Field>
       <Field label={student ? "New password (optional)" : "Password"}>
-        <Input name="password" type="password" autoComplete="new-password" required={!student} />
+        <PasswordInput name="password" autoComplete="new-password" required={!student} />
       </Field>
       <Field label="Confirm password">
-        <Input name="confirmPassword" type="password" autoComplete="new-password" required={!student} />
+        <PasswordInput name="confirmPassword" autoComplete="new-password" required={!student} />
       </Field>
       <Field label="Date of birth">
         <Input name="dateOfBirth" type="date" defaultValue={student?.dateOfBirth} required />
@@ -127,7 +126,7 @@ export function StudentForm({
         <Input name="academicYear" defaultValue={student?.academicYear} placeholder="2025/26" required />
       </Field>
       <Field label="Programme">
-        <select name="programmeId" defaultValue={student?.programmeId ?? ""} required className={selectClass}>
+        <NativeSelect name="programmeId" defaultValue={student?.programmeId ?? ""} required>
           <option value="" disabled>
             Choose a programme
           </option>
@@ -136,16 +135,16 @@ export function StudentForm({
               {programme.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Status">
-        <select name="enrolmentStatus" defaultValue={student?.enrolmentStatus ?? "ENROLLED"} className={selectClass}>
+        <NativeSelect name="enrolmentStatus" defaultValue={student?.enrolmentStatus ?? "ENROLLED"}>
           {ENROLMENT_STATUSES.map((status) => (
             <option key={status} value={status}>
               {ENROLMENT_STATUS_LABELS[status]}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       {student ? (
         <Field label="Assigned fee">
@@ -180,7 +179,7 @@ export function AssessmentForm({
         <Input name="title" defaultValue={assessment?.title} required />
       </Field>
       <Field label="Module">
-        <select name="moduleId" defaultValue={assessment?.moduleId ?? ""} required className={selectClass}>
+        <NativeSelect name="moduleId" defaultValue={assessment?.moduleId ?? ""} required>
           <option value="" disabled>
             Choose a module
           </option>
@@ -189,7 +188,7 @@ export function AssessmentForm({
               {module.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Deadline (UTC)">
         <Input name="deadline" type="datetime-local" defaultValue={assessment?.deadline} required />
@@ -216,7 +215,7 @@ export function PaymentForm({
       <FormError message={state?.error} />
       <input type="hidden" name="id" value={payment?.id ?? ""} />
       <Field label="Student" className="sm:col-span-2">
-        <select name="studentId" defaultValue={payment?.studentId ?? ""} required className={selectClass}>
+        <NativeSelect name="studentId" defaultValue={payment?.studentId ?? ""} required>
           <option value="" disabled>
             Choose a student
           </option>
@@ -225,7 +224,7 @@ export function PaymentForm({
               {student.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Amount">
         <Input name="amount" defaultValue={payment?.amount} inputMode="decimal" required />
@@ -260,7 +259,7 @@ export function ResultForm({
       <FormError message={state?.error} />
       <input type="hidden" name="id" value={result?.id ?? ""} />
       <Field label="Student">
-        <select name="studentId" defaultValue={result?.studentId ?? ""} required className={selectClass}>
+        <NativeSelect name="studentId" defaultValue={result?.studentId ?? ""} required>
           <option value="" disabled>
             Choose a student
           </option>
@@ -269,10 +268,10 @@ export function ResultForm({
               {student.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Assessment">
-        <select name="assessmentId" defaultValue={result?.assessmentId ?? ""} required className={selectClass}>
+        <NativeSelect name="assessmentId" defaultValue={result?.assessmentId ?? ""} required>
           <option value="" disabled>
             Choose an assessment
           </option>
@@ -281,7 +280,7 @@ export function ResultForm({
               {assessment.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Grade (0–100)">
         <Input name="grade" type="number" min={0} max={100} step={1} defaultValue={result?.grade} required />
@@ -299,28 +298,3 @@ export function ResultForm({
   )
 }
 
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string
-  children: React.ReactNode
-  className?: string
-}) {
-  return (
-    <label className={`space-y-1.5 ${className ?? ""}`}>
-      <span className="text-sm font-medium">{label}</span>
-      {children}
-    </label>
-  )
-}
-
-function FormError({ message }: { message?: string }) {
-  if (!message) return null
-  return (
-    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive sm:col-span-full" role="alert">
-      {message}
-    </p>
-  )
-}

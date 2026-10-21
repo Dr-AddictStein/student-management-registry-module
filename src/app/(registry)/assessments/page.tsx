@@ -4,14 +4,6 @@ import { Suspense } from "react"
 import { ConfirmDelete } from "@/components/confirm-delete"
 import { PageHeader } from "@/components/page-header"
 import { AssessmentForm } from "@/components/registry-forms"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { SubmissionForm } from "@/components/submission-form"
 import { Badge } from "@/components/ui/badge"
 import { formatDisplayDate } from "@/lib/domain"
@@ -19,7 +11,8 @@ import { toDateTimeInput } from "@/lib/inputs"
 import { prisma } from "@/lib/prisma"
 import { deleteAssessment, deleteSubmission } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
-import { EmptyRow, Notice, RecordTable, RowActions } from "@/components/record-list"
+import { DataTable } from "@/components/data-table"
+import { Notice, RowActions } from "@/components/record-list"
 
 export default function AssessmentsPage({
   searchParams,
@@ -71,53 +64,54 @@ async function AssessmentsContent({
             Only enrolled students can submit work. You can still see what you have already handed in.
           </p>
         )}
-        <RecordTable>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Assessment</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Deadline (UTC)</TableHead>
-                <TableHead>Your submission</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {assessments.length === 0 ? (
-                <EmptyRow span={4} message="Your programme has no assessments yet." />
-              ) : (
-                assessments.map((assessment) => {
-                  const submission = assessment.submissions[0]
-                  const closed = now > assessment.deadline
-                  return (
-                    <TableRow key={assessment.id}>
-                      <TableCell>{assessment.title}</TableCell>
-                      <TableCell>{assessment.module.code}</TableCell>
-                      <TableCell>
-                        {formatDisplayDate(assessment.deadline)} {assessment.deadline.toISOString().slice(11, 16)}
-                        {closed ? <Badge variant="outline" className="ml-2">Closed</Badge> : null}
-                      </TableCell>
-                      <TableCell className="whitespace-normal">
-                        {submission ? (
-                          <span className="inline-flex flex-wrap items-center gap-2">
-                            <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
-                              {submission.originalFileName}
-                            </a>
-                            {submission.isLate ? <Badge variant="destructive">Late</Badge> : <Badge variant="secondary">On time</Badge>}
-                          </span>
-                        ) : (
-                          "Not submitted"
-                        )}
-                        {enrolled && (!submission || !closed) ? (
-                          <SubmissionForm assessmentId={assessment.id} replacing={Boolean(submission)} late={closed && !submission} />
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </RecordTable>
+        <DataTable
+          rows={assessments}
+          rowKey={(assessment) => assessment.id}
+          empty="Your programme has no assessments yet."
+          columns={[
+            { key: "assessment", header: "Assessment", cell: (assessment) => assessment.title },
+            { key: "module", header: "Module", cell: (assessment) => assessment.module.code },
+            {
+              key: "deadline",
+              header: "Deadline (UTC)",
+              cell: (assessment) => {
+                const closed = now > assessment.deadline
+                return (
+                  <>
+                    {formatDisplayDate(assessment.deadline)} {assessment.deadline.toISOString().slice(11, 16)}
+                    {closed ? <Badge variant="outline" className="ml-2">Closed</Badge> : null}
+                  </>
+                )
+              },
+            },
+            {
+              key: "submission",
+              header: "Your submission",
+              className: "whitespace-normal",
+              cell: (assessment) => {
+                const submission = assessment.submissions[0]
+                const closed = now > assessment.deadline
+                return (
+                  <>
+                    {submission ? (
+                      <span className="inline-flex flex-wrap items-center justify-center gap-2">
+                        <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
+                          {submission.originalFileName}
+                        </a>
+                        {submission.isLate ? <Badge variant="destructive">Late</Badge> : <Badge variant="secondary">On time</Badge>}
+                      </span>
+                    ) : (
+                      "Not submitted"
+                    )}
+                    {enrolled && (!submission || !closed) ? (
+                      <SubmissionForm assessmentId={assessment.id} replacing={Boolean(submission)} late={closed && !submission} />
+                    ) : null}
+                  </>
+                )
+              },
+            },
+          ]}
+        />
       </>
     )
   }
@@ -175,80 +169,62 @@ async function AssessmentsContent({
           ) : null}
         </section>
       )}
-      <RecordTable>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Title</TableHead>
-              <TableHead>Module</TableHead>
-              <TableHead>Deadline (UTC)</TableHead>
-              <TableHead>Submissions</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {assessments.length === 0 ? (
-              <EmptyRow span={5} message="No assessments yet." />
-            ) : (
-              assessments.map((assessment) => (
-                <TableRow key={assessment.id}>
-                  <TableCell>{assessment.title}</TableCell>
-                  <TableCell>{assessment.module.code}</TableCell>
-                  <TableCell>{toDateTimeInput(assessment.deadline).replace("T", " ")}</TableCell>
-                  <TableCell>{assessment._count.submissions}</TableCell>
-                  <TableCell>
-                    <RowActions
-                      editHref={`/assessments?edit=${assessment.id}`}
-                      id={assessment.id}
-                      label={assessment.title}
-                      action={deleteAssessment}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={assessments}
+        rowKey={(assessment) => assessment.id}
+        empty="No assessments yet."
+        columns={[
+          { key: "title", header: "Title", cell: (assessment) => assessment.title },
+          { key: "module", header: "Module", cell: (assessment) => assessment.module.code },
+          { key: "deadline", header: "Deadline (UTC)", cell: (assessment) => toDateTimeInput(assessment.deadline).replace("T", " ") },
+          { key: "submissions", header: "Submissions", cell: (assessment) => assessment._count.submissions },
+          {
+            key: "actions",
+            header: "",
+            cell: (assessment) => (
+              <RowActions
+                editHref={`/assessments?edit=${assessment.id}`}
+                id={assessment.id}
+                label={assessment.title}
+                action={deleteAssessment}
+              />
+            ),
+          },
+        ]}
+      />
       <h2 className="mt-8 mb-3 text-lg font-semibold tracking-tight">Submissions</h2>
       <p className="mb-4 text-sm text-muted-foreground">
         Students upload their own files. A submission can be removed here so the assessment can be deleted.
       </p>
-      <RecordTable>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student</TableHead>
-              <TableHead>Assessment</TableHead>
-              <TableHead>File</TableHead>
-              <TableHead>Handed in (UTC)</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {submissions.length === 0 ? (
-              <EmptyRow span={5} message="No submissions yet." />
-            ) : (
-              submissions.map((submission) => (
-                <TableRow key={submission.id}>
-                  <TableCell>{submission.student.studentNumber} {submission.student.fullName}</TableCell>
-                  <TableCell>{submission.assessment.title}</TableCell>
-                  <TableCell>
-                    <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
-                      {submission.originalFileName}
-                    </a>
-                    {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
-                  </TableCell>
-                  <TableCell>{toDateTimeInput(submission.submittedAt).replace("T", " ")}</TableCell>
-                  <TableCell>
-                    <ConfirmDelete action={deleteSubmission} id={submission.id} label={submission.originalFileName} />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={submissions}
+        rowKey={(submission) => submission.id}
+        empty="No submissions yet."
+        columns={[
+          { key: "student", header: "Student", cell: (submission) => `${submission.student.studentNumber} ${submission.student.fullName}` },
+          { key: "assessment", header: "Assessment", cell: (submission) => submission.assessment.title },
+          {
+            key: "file",
+            header: "File",
+            cell: (submission) => (
+              <>
+                <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
+                  {submission.originalFileName}
+                </a>
+                {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
+              </>
+            ),
+          },
+          { key: "handed", header: "Handed in (UTC)", cell: (submission) => toDateTimeInput(submission.submittedAt).replace("T", " ") },
+          {
+            key: "actions",
+            header: "",
+            cell: (submission) => (
+              <ConfirmDelete action={deleteSubmission} id={submission.id} label={submission.originalFileName} />
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

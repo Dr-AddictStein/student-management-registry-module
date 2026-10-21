@@ -7,7 +7,15 @@ import {
 } from "@/lib/domain"
 import { prisma } from "@/lib/prisma"
 
-export class EnrolmentError extends Error {}
+export class EnrolmentError extends Error {
+  readonly issue?: "email" | "programme" | "academicYear"
+
+  constructor(message: string, issue?: "email" | "programme" | "academicYear") {
+    super(message)
+    this.name = "EnrolmentError"
+    this.issue = issue
+  }
+}
 
 type NewStudent = {
   fullName: string
@@ -23,7 +31,7 @@ type NewStudent = {
 export async function createStudent(input: NewStudent) {
   const startYear = parseAcademicYear(input.academicYear)
   if (!startYear) {
-    throw new EnrolmentError("Enter the academic year as 2025/26.")
+    throw new EnrolmentError("Enter the academic year as 2025/26.", "academicYear")
   }
 
   const academicYear = formatAcademicYear(startYear)
@@ -35,7 +43,7 @@ export async function createStudent(input: NewStudent) {
           where: { id: input.programmeId },
         })
         if (!programme) {
-          throw new EnrolmentError("Choose a programme from the list.")
+          throw new EnrolmentError("Choose a programme from the list.", "programme")
         }
 
         const prefix = `SMS-${startYear}-`
@@ -66,7 +74,7 @@ export async function createStudent(input: NewStudent) {
       if (error instanceof EnrolmentError) throw error
       const target = uniqueTarget(error)
       if (target?.includes("email")) {
-        throw new EnrolmentError("An account with that email already exists.")
+        throw new EnrolmentError("An account with that email already exists.", "email")
       }
       if (target?.includes("studentNumber") && attempt === 0) continue
       throw error

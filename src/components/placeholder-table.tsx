@@ -1,11 +1,4 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { DataTable } from "@/components/data-table"
 
 export function PlaceholderTable({
   columns,
@@ -15,26 +8,15 @@ export function PlaceholderTable({
   message: string
 }) {
   return (
-    <div className="rounded-xl bg-card ring-1 ring-foreground/10">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHead key={column}>{column}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow className="hover:bg-transparent">
-            <TableCell
-              colSpan={columns.length}
-              className="h-28 text-center whitespace-normal text-muted-foreground"
-            >
-              {message}
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      rows={[]}
+      rowKey={() => "empty"}
+      empty={message}
+      columns={columns.map((column) => ({
+        key: column,
+        header: column,
+        cell: () => null,
+      }))}
+    />
   )
 }

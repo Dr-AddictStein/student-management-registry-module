@@ -3,19 +3,12 @@ import { Suspense } from "react"
 import { PageHeader } from "@/components/page-header"
 import { ResultForm } from "@/components/registry-forms"
 import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { CLASSIFICATION_LABELS } from "@/lib/domain"
 import { prisma } from "@/lib/prisma"
 import { deleteResult } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
-import { EmptyRow, Notice, RecordTable, RowActions } from "@/components/record-list"
+import { DataTable } from "@/components/data-table"
+import { Notice, RowActions } from "@/components/record-list"
 
 export default function ResultsPage({
   searchParams,
@@ -49,32 +42,17 @@ async function ResultsContent({
           title="My results"
           description="Only grades the registry has published are listed. Withheld results are not shown."
         />
-        <RecordTable>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Assessment</TableHead>
-                <TableHead>Module</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Classification</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {results.length === 0 ? (
-                <EmptyRow span={4} message="No published results yet." />
-              ) : (
-                results.map((result) => (
-                  <TableRow key={result.id}>
-                    <TableCell>{result.assessment.title}</TableCell>
-                    <TableCell>{result.assessment.module.code}</TableCell>
-                    <TableCell>{result.grade}</TableCell>
-                    <TableCell>{CLASSIFICATION_LABELS[result.classification]}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </RecordTable>
+        <DataTable
+          rows={results}
+          rowKey={(result) => result.id}
+          empty="No published results yet."
+          columns={[
+            { key: "assessment", header: "Assessment", cell: (result) => result.assessment.title },
+            { key: "module", header: "Module", cell: (result) => result.assessment.module.code },
+            { key: "grade", header: "Grade", cell: (result) => result.grade },
+            { key: "classification", header: "Classification", cell: (result) => CLASSIFICATION_LABELS[result.classification] },
+          ]}
+        />
       </>
     )
   }
@@ -137,45 +115,34 @@ async function ResultsContent({
           ) : null}
         </section>
       )}
-      <RecordTable>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student</TableHead>
-              <TableHead>Assessment</TableHead>
-              <TableHead>Grade</TableHead>
-              <TableHead>Classification</TableHead>
-              <TableHead>Published</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {results.length === 0 ? (
-              <EmptyRow span={6} message="No grades yet." />
-            ) : (
-              results.map((result) => (
-                <TableRow key={result.id}>
-                  <TableCell>{result.student.studentNumber} {result.student.fullName}</TableCell>
-                  <TableCell>{result.assessment.title}</TableCell>
-                  <TableCell>{result.grade}</TableCell>
-                  <TableCell>{CLASSIFICATION_LABELS[result.classification]}</TableCell>
-                  <TableCell>
-                    {result.published ? <Badge>Published</Badge> : <Badge variant="outline">Withheld</Badge>}
-                  </TableCell>
-                  <TableCell>
-                    <RowActions
-                      editHref={`/results?edit=${result.id}`}
-                      id={result.id}
-                      label="this grade"
-                      action={deleteResult}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={results}
+        rowKey={(result) => result.id}
+        empty="No grades yet."
+        columns={[
+          { key: "student", header: "Student", cell: (result) => `${result.student.studentNumber} ${result.student.fullName}` },
+          { key: "assessment", header: "Assessment", cell: (result) => result.assessment.title },
+          { key: "grade", header: "Grade", cell: (result) => result.grade },
+          { key: "classification", header: "Classification", cell: (result) => CLASSIFICATION_LABELS[result.classification] },
+          {
+            key: "published",
+            header: "Published",
+            cell: (result) => (result.published ? <Badge>Published</Badge> : <Badge variant="outline">Withheld</Badge>),
+          },
+          {
+            key: "actions",
+            header: "",
+            cell: (result) => (
+              <RowActions
+                editHref={`/results?edit=${result.id}`}
+                id={result.id}
+                label="this grade"
+                action={deleteResult}
+              />
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

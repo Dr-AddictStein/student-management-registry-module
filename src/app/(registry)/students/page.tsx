@@ -3,23 +3,17 @@ import { Suspense } from "react"
 import { EnrolmentSummary } from "@/components/enrolment-summary"
 import { PageHeader } from "@/components/page-header"
 import { StudentForm } from "@/components/registry-forms"
+import { NativeSelect } from "@/components/form-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { ENROLMENT_STATUSES, ENROLMENT_STATUS_LABELS, feeDueFrom, type EnrolmentStatus } from "@/lib/domain"
 import { moneyInput, toDateInput } from "@/lib/inputs"
 import { prisma } from "@/lib/prisma"
 import { deleteStudent } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
 import { loadStudent } from "@/lib/current-student"
-import { EmptyRow, Notice, RecordTable, RowActions } from "@/components/record-list"
+import { DataTable } from "@/components/data-table"
+import { Notice, RowActions } from "@/components/record-list"
 
 export default function StudentsPage({
   searchParams,
@@ -88,18 +82,18 @@ async function StudentsContent({
       <Notice message={params.error} />
       <form className="mb-4 flex flex-wrap items-end gap-2" action="/students">
         <Input name="q" defaultValue={params.q} placeholder="Name, email, or student ID" className="w-64" />
-        <select name="programme" defaultValue={params.programme ?? ""} className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm">
+        <NativeSelect name="programme" defaultValue={params.programme ?? ""} className="w-auto">
           <option value="">All programmes</option>
           {programmes.map((programme) => (
             <option key={programme.id} value={programme.id}>{programme.name}</option>
           ))}
-        </select>
-        <select name="status" defaultValue={params.status ?? ""} className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm">
+        </NativeSelect>
+        <NativeSelect name="status" defaultValue={params.status ?? ""} className="w-auto">
           <option value="">All statuses</option>
           {ENROLMENT_STATUSES.map((item) => (
             <option key={item} value={item}>{ENROLMENT_STATUS_LABELS[item]}</option>
           ))}
-        </select>
+        </NativeSelect>
         <Button type="submit" variant="outline">Search</Button>
         <Link href="/students" className="text-sm underline-offset-4 hover:underline">Clear</Link>
       </form>
@@ -133,45 +127,31 @@ async function StudentsContent({
           ) : null}
         </section>
       )}
-      <RecordTable>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Student ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Programme</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {students.length === 0 ? (
-              <EmptyRow span={7} message="No students match this search." />
-            ) : (
-              students.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>{student.studentNumber}</TableCell>
-                  <TableCell>{student.fullName}</TableCell>
-                  <TableCell>{student.email}</TableCell>
-                  <TableCell>{student.programme.name}</TableCell>
-                  <TableCell>{student.academicYear}</TableCell>
-                  <TableCell>{ENROLMENT_STATUS_LABELS[student.enrolmentStatus]}</TableCell>
-                  <TableCell>
-                    <RowActions
-                      editHref={`/students?edit=${student.id}`}
-                      id={student.id}
-                      label={student.fullName}
-                      action={deleteStudent}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={students}
+        rowKey={(student) => student.id}
+        empty="No students match this search."
+        columns={[
+          { key: "id", header: "Student ID", cell: (student) => student.studentNumber },
+          { key: "name", header: "Name", cell: (student) => student.fullName },
+          { key: "email", header: "Email", cell: (student) => student.email },
+          { key: "programme", header: "Programme", cell: (student) => student.programme.name },
+          { key: "year", header: "Year", cell: (student) => student.academicYear },
+          { key: "status", header: "Status", cell: (student) => ENROLMENT_STATUS_LABELS[student.enrolmentStatus] },
+          {
+            key: "actions",
+            header: "",
+            cell: (student) => (
+              <RowActions
+                editHref={`/students?edit=${student.id}`}
+                id={student.id}
+                label={student.fullName}
+                action={deleteStudent}
+              />
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

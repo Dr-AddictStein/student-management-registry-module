@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import { useActionState } from "react"
+import { startTransition, useActionState, useEffect, useRef } from "react"
 import { login, register, type AuthState } from "@/lib/auth-actions"
+import { Field, FormError, NativeSelect } from "@/components/form-field"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 
 type ProgrammeOption = {
   id: string
@@ -18,15 +20,14 @@ export function LoginForm() {
 
   return (
     <form action={action} className="space-y-4">
-      <AuthError message={state?.error} />
+      <FormError message={state?.error} />
       <Field label="Email" htmlFor="email">
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
       <Field label="Password" htmlFor="password">
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
         />
@@ -45,11 +46,34 @@ export function LoginForm() {
 }
 
 export function RegisterForm({ programmes }: { programmes: ProgrammeOption[] }) {
-  const [state, action, pending] = useActionState(register, null as AuthState)
+  const [state, submit, pending] = useActionState(register, null as AuthState)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    const form = formRef.current
+    if (!form || !state?.clear?.length) return
+
+    for (const name of state.clear) {
+      const field = form.elements.namedItem(name)
+      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+        field.value = ""
+      }
+    }
+  }, [state])
 
   return (
-    <form action={action} className="space-y-4">
-      <AuthError message={state?.error} />
+    <form
+      ref={formRef}
+      className="space-y-4"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const formData = new FormData(event.currentTarget)
+        startTransition(() => {
+          submit(formData)
+        })
+      }}
+    >
+      <FormError message={state?.error} />
       <Field label="Full name" htmlFor="fullName">
         <Input id="fullName" name="fullName" autoComplete="name" required />
       </Field>
@@ -58,20 +82,18 @@ export function RegisterForm({ programmes }: { programmes: ProgrammeOption[] }) 
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Password" htmlFor="password">
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             autoComplete="new-password"
             minLength={8}
             required
           />
         </Field>
         <Field label="Confirm password" htmlFor="confirmPassword">
-          <Input
+          <PasswordInput
             id="confirmPassword"
             name="confirmPassword"
-            type="password"
             autoComplete="new-password"
             minLength={8}
             required
@@ -82,22 +104,14 @@ export function RegisterForm({ programmes }: { programmes: ProgrammeOption[] }) 
         <Input id="dateOfBirth" name="dateOfBirth" type="date" required />
       </Field>
       <Field label="Programme" htmlFor="programmeId">
-        <select
-          id="programmeId"
-          name="programmeId"
-          required
-          defaultValue=""
-          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <option value="" disabled>
-            Choose a programme
-          </option>
+        <NativeSelect id="programmeId" name="programmeId" required defaultValue="">
+          <option value="">Choose a programme</option>
           {programmes.map((programme) => (
             <option key={programme.id} value={programme.id}>
               {programme.name} ({programme.code}) — {programme.fee}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
       <Field label="Academic year" htmlFor="academicYear">
         <Input
@@ -120,33 +134,5 @@ export function RegisterForm({ programmes }: { programmes: ProgrammeOption[] }) 
         </Link>
       </p>
     </form>
-  )
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string
-  htmlFor: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-medium">
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function AuthError({ message }: { message?: string }) {
-  if (!message) return null
-  return (
-    <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
-      {message}
-    </p>
   )
 }

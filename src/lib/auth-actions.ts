@@ -7,28 +7,48 @@ import { hashPassword, passwordsMatch, verifyPassword } from "@/lib/password"
 import { prisma } from "@/lib/prisma"
 import { clearSession, setSession } from "@/lib/session"
 
-export type AuthState = { error: string } | null
+export type RegisterField =
+  | "fullName"
+  | "email"
+  | "password"
+  | "confirmPassword"
+  | "dateOfBirth"
+  | "academicYear"
+  | "programmeId"
+
+export type AuthState = { error: string; clear?: RegisterField[] } | null
 
 const PASSWORD_MIN = 8
+
+function reject(error: string, ...clear: RegisterField[]): AuthState {
+  return clear.length > 0 ? { error, clear } : { error }
+}
+
+function enrolmentClear(error: EnrolmentError): RegisterField[] {
+  if (error.issue === "email") return ["email"]
+  if (error.issue === "programme") return ["programmeId"]
+  if (error.issue === "academicYear") return ["academicYear"]
+  return []
+}
 
 export async function login(_state: AuthState, formData: FormData): Promise<AuthState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase()
   const password = String(formData.get("password") ?? "")
 
   if (!email || !password) {
-    return { error: "Enter your email and password." }
+    return reject("Enter your email and password.")
   }
 
   const staffEmail = process.env.STAFF_EMAIL?.trim().toLowerCase()
   const staffPassword = process.env.STAFF_PASSWORD
 
   if (!staffEmail || !staffPassword) {
-    return { error: "Staff sign-in is not configured." }
+    return reject("Staff sign-in is not configured.")
   }
 
   if (email === staffEmail) {
     if (!passwordsMatch(password, staffPassword)) {
-      return { error: "Email or password is incorrect." }
+      return reject("Email or password is incorrect.")
     }
 
     await setSession({
@@ -41,7 +61,7 @@ export async function login(_state: AuthState, formData: FormData): Promise<Auth
 
   const student = await prisma.student.findUnique({ where: { email } })
   if (!student || !(await verifyPassword(password, student.passwordHash))) {
-    return { error: "Email or password is incorrect." }
+    return reject("Email or password is incorrect.")
   }
 
   await setSession({
@@ -64,28 +84,28 @@ export async function register(_state: AuthState, formData: FormData): Promise<A
   const staffEmail = process.env.STAFF_EMAIL?.trim().toLowerCase()
 
   if (fullName.length < 2 || fullName.length > 120) {
-    return { error: "Enter the student's full name." }
+    return reject("Enter the student's full name.", "fullName")
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: "Enter a valid email address." }
+    return reject("Enter a valid email address.", "email")
   }
   if (email === staffEmail) {
-    return { error: "That email is reserved for the registry desk." }
+    return reject("That email is reserved for the registry desk.", "email")
   }
   if (password.length < PASSWORD_MIN) {
-    return { error: `Use a password of at least ${PASSWORD_MIN} characters.` }
+    return reject(`Use a password of at least ${PASSWORD_MIN} characters.`, "password", "confirmPassword")
   }
   if (password !== confirmPassword) {
-    return { error: "The passwords do not match." }
+    return reject("The passwords do not match.", "password", "confirmPassword")
   }
   if (!dateOfBirth) {
-    return { error: "Enter a date of birth. The student must be at least 16." }
+    return reject("Enter a date of birth. The student must be at least 16.", "dateOfBirth")
   }
   if (!parseAcademicYear(academicYear)) {
-    return { error: "Enter the academic year as 2025/26." }
+    return reject("Enter the academic year as 2025/26.", "academicYear")
   }
   if (!programmeId) {
-    return { error: "Choose a programme." }
+    return reject("Choose a programme.", "programmeId")
   }
 
   try {
@@ -105,7 +125,7 @@ export async function register(_state: AuthState, formData: FormData): Promise<A
       studentId: student.id,
     })
   } catch (error) {
-    if (error instanceof EnrolmentError) return { error: error.message }
+    if (error instanceof EnrolmentError) return reject(error.message, ...enrolmentClear(error))
     throw error
   }
 

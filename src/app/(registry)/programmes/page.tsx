@@ -1,16 +1,9 @@
 import Link from "next/link"
 import { Suspense } from "react"
 import { PageHeader } from "@/components/page-header"
-import { EmptyRow, Notice, RecordTable, RowActions } from "@/components/record-list"
+import { DataTable } from "@/components/data-table"
+import { Notice, RowActions } from "@/components/record-list"
 import { ProgrammeForm } from "@/components/registry-forms"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { formatAmount } from "@/lib/domain"
 import { moneyInput } from "@/lib/inputs"
 import { prisma } from "@/lib/prisma"
@@ -71,38 +64,25 @@ async function ProgrammesContent({
           </Link>
         ) : null}
       </section>
-      <RecordTable>
-        <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Code</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Fee</TableHead>
-            <TableHead>Modules</TableHead>
-            <TableHead>Students</TableHead>
-            <TableHead />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {programmes.length === 0 ? (
-            <EmptyRow span={6} message="No programmes yet. Add the first one above." />
-          ) : (
-            programmes.map((programme) => (
-              <TableRow key={programme.id}>
-                <TableCell>{programme.code}</TableCell>
-                <TableCell>{programme.name}</TableCell>
-                <TableCell>{formatAmount(programme.feeAmount)}</TableCell>
-                <TableCell>{programme._count.modules}</TableCell>
-                <TableCell>{programme._count.students}</TableCell>
-                <TableCell>
-                  <RowActions editHref={`/programmes?edit=${programme.id}`} id={programme.id} label={programme.name} action={deleteProgramme} />
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={programmes}
+        rowKey={(programme) => programme.id}
+        empty="No programmes yet. Add the first one above."
+        columns={[
+          { key: "code", header: "Code", cell: (programme) => programme.code },
+          { key: "name", header: "Name", cell: (programme) => programme.name },
+          { key: "fee", header: "Fee", cell: (programme) => formatAmount(programme.feeAmount) },
+          { key: "modules", header: "Modules", cell: (programme) => programme._count.modules },
+          { key: "students", header: "Students", cell: (programme) => programme._count.students },
+          {
+            key: "actions",
+            header: "",
+            cell: (programme) => (
+              <RowActions editHref={`/programmes?edit=${programme.id}`} id={programme.id} label={programme.name} action={deleteProgramme} />
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

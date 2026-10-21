@@ -2,19 +2,12 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { PageHeader } from "@/components/page-header"
+import { DataTable } from "@/components/data-table"
+import { Notice, RowActions } from "@/components/record-list"
 import { ModuleForm } from "@/components/registry-forms"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { prisma } from "@/lib/prisma"
 import { deleteModule } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
-import { EmptyRow, Notice, RecordTable, RowActions } from "@/components/record-list"
 
 export default function ModulesPage({
   searchParams,
@@ -74,41 +67,29 @@ async function ModulesContent({
           ) : null}
         </section>
       )}
-      <RecordTable>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Programme</TableHead>
-              <TableHead>Assessments</TableHead>
-              <TableHead />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {modules.length === 0 ? (
-              <EmptyRow span={5} message="No modules yet." />
-            ) : (
-              modules.map((module) => (
-                <TableRow key={module.id}>
-                  <TableCell>{module.code}</TableCell>
-                  <TableCell>{module.name}</TableCell>
-                  <TableCell>{module.programme.name}</TableCell>
-                  <TableCell>{module._count.assessments}</TableCell>
-                  <TableCell>
-                    <RowActions
-                      editHref={`/modules?edit=${module.id}`}
-                      id={module.id}
-                      label={module.name}
-                      action={deleteModule}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </RecordTable>
+      <DataTable
+        rows={modules}
+        rowKey={(module) => module.id}
+        empty="No modules yet."
+        columns={[
+          { key: "code", header: "Code", cell: (module) => module.code },
+          { key: "name", header: "Name", cell: (module) => module.name },
+          { key: "programme", header: "Programme", cell: (module) => module.programme.name },
+          { key: "assessments", header: "Assessments", cell: (module) => module._count.assessments },
+          {
+            key: "actions",
+            header: "",
+            cell: (module) => (
+              <RowActions
+                editHref={`/modules?edit=${module.id}`}
+                id={module.id}
+                label={module.name}
+                action={deleteModule}
+              />
+            ),
+          },
+        ]}
+      />
     </>
   )
 }

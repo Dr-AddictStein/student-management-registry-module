@@ -1,5 +1,7 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+
 export default function Error({
   error,
   reset,
@@ -15,13 +17,9 @@ export default function Error({
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         {error.message || "The registry could not load this page."}
       </p>
-      <button
-        type="button"
-        onClick={reset}
-        className="mt-6 inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
-      >
+      <Button type="button" className="mt-6" onClick={reset}>
         Try again
-      </button>
+      </Button>
     </div>
   )
 }

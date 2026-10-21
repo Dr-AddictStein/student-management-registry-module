@@ -13,6 +13,7 @@ export function ConfirmDelete({
 }) {
   return (
     <form
+      className="inline-flex justify-center"
       action={action}
       onSubmit={(event) => {
         if (!window.confirm(`Delete ${label}?`)) event.preventDefault()

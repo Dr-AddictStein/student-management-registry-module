@@ -1,9 +1,25 @@
 import type { Metadata } from "next"
+import { DataTable } from "@/components/data-table"
 import { SwaggerPanel } from "@/components/swagger-panel"
 
 export const metadata: Metadata = {
   title: "API documentation",
 }
+
+const routes = [
+  {
+    method: "GET",
+    path: "/api/logout",
+    auth: "Public",
+    result: "Clears the cookie and redirects to /login.",
+  },
+  {
+    method: "GET",
+    path: "/api/submissions/{id}",
+    auth: "Staff, or the student who owns the file",
+    result: "Returns the PDF or DOCX. 403 if a student requests someone else's file. 404 if the row or the file is missing. No session redirects to /login.",
+  },
+]
 
 const actions = [
   {
@@ -102,34 +118,18 @@ export default function DocsPage() {
       </p>
 
       <h2 className="mt-10 text-xl font-semibold tracking-tight">HTTP routes</h2>
-      <div className="mt-4 overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Method</th>
-              <th className="px-4 py-3 font-medium">Path</th>
-              <th className="px-4 py-3 font-medium">Auth</th>
-              <th className="px-4 py-3 font-medium">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b align-top">
-              <td className="px-4 py-3 font-medium">GET</td>
-              <td className="px-4 py-3">/api/logout</td>
-              <td className="px-4 py-3">Public</td>
-              <td className="px-4 py-3">Clears the cookie and redirects to /login.</td>
-            </tr>
-            <tr className="align-top">
-              <td className="px-4 py-3 font-medium">GET</td>
-              <td className="px-4 py-3">/api/submissions/{"{id}"}</td>
-              <td className="px-4 py-3">Staff, or the student who owns the file</td>
-              <td className="px-4 py-3">
-                Returns the PDF or DOCX. 403 if a student requests someone else&apos;s file.
-                404 if the row or the file is missing. No session redirects to /login.
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <DataTable
+          rows={routes}
+          rowKey={(route) => route.path}
+          empty="No HTTP routes."
+          columns={[
+            { key: "method", header: "Method", cell: (route) => route.method },
+            { key: "path", header: "Path", cell: (route) => route.path },
+            { key: "auth", header: "Auth", cell: (route) => route.auth, className: "whitespace-normal" },
+            { key: "result", header: "Result", cell: (route) => route.result, className: "whitespace-normal" },
+          ]}
+        />
       </div>
 
       <h2 className="mt-10 text-xl font-semibold tracking-tight">Server actions</h2>
@@ -138,27 +138,18 @@ export default function DocsPage() {
         success or returns an error the form can show. Student-role callers cannot run
         staff actions. Hidden buttons are not the only guard.
       </p>
-      <div className="mt-4 overflow-x-auto rounded-xl bg-card ring-1 ring-foreground/10">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Action</th>
-              <th className="px-4 py-3 font-medium">Who</th>
-              <th className="px-4 py-3 font-medium">Fields</th>
-              <th className="px-4 py-3 font-medium">What it does</th>
-            </tr>
-          </thead>
-          <tbody>
-            {actions.map((action) => (
-              <tr key={action.name} className="border-b align-top last:border-0">
-                <td className="px-4 py-3 font-medium whitespace-nowrap">{action.name}</td>
-                <td className="px-4 py-3 whitespace-nowrap">{action.who}</td>
-                <td className="px-4 py-3">{action.fields}</td>
-                <td className="px-4 py-3">{action.effect}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="mt-4">
+        <DataTable
+          rows={actions}
+          rowKey={(action) => action.name}
+          empty="No server actions."
+          columns={[
+            { key: "name", header: "Action", cell: (action) => action.name },
+            { key: "who", header: "Who", cell: (action) => action.who },
+            { key: "fields", header: "Fields", cell: (action) => action.fields, className: "whitespace-normal" },
+            { key: "effect", header: "What it does", cell: (action) => action.effect, className: "whitespace-normal" },
+          ]}
+        />
       </div>
     </main>
   )
