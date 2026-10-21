@@ -77,9 +77,9 @@ export function storedPath(storedFileName: string) {
   return full
 }
 
-export function contentDisposition(fileName: string) {
+export function contentDisposition(fileName: string, disposition: "attachment" | "inline" = "attachment") {
   const ascii = fileName.replace(/[^\w.\- ]+/g, "_")
-  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
+  return `${disposition}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
 }
 
 function sanitizeFileName(name: string) {

@@ -81,7 +81,7 @@ The session cookie is `sms_session`. It lasts 7 days. **Log out** in the sidebar
 | `npm run lint` | ESLint |
 | `npm run db:generate` | Regenerate the Prisma client |
 | `npm run db:migrate` | Create and apply a migration |
-| `npm run db:seed` | Replace all rows with the demo set |
+| `npm run db:seed` | Replace all rows with the demo set, and write the sample submission files |
 | `npm run db:studio` | Open Prisma Studio |
 
 ## Environment variables
@@ -110,7 +110,7 @@ postgresql://postgres:postgres@localhost:5432/sms_registry?schema=public
 | `/modules` | Create, edit, and delete modules | Hidden |
 | `/students` | Search, enrol, edit, and delete students | Own enrolment record |
 | `/fees` | Balances and payment records | Own fee and payments |
-| `/assessments` | Create assessments and see every submission | Own programme, with upload |
+| `/assessments` | Create assessments, see every submission, and open each file | Own programme, with upload |
 | `/results` | Enter, publish, withhold, and delete grades | Published grades only |
 | `/login`, `/register` | Sign-in. Registration is for students | Same |
 | `/docs` | API reference, public | Same |
@@ -128,7 +128,7 @@ These are the edge cases the screens enforce. The server checks them again even 
 - A payment must be greater than zero, dated today or earlier, and no larger than the remaining balance. The reference is unique.
 - An assessment has one deadline, stored in UTC. If staff move the deadline, each submission is marked late or on time again from its original submission time.
 - A student uploads one PDF or DOCX of up to 10 MB per assessment. The file signature is checked, not only the extension. They can replace it until the deadline. After the deadline, a first file is accepted and marked late, and an existing file cannot be replaced. Only an enrolled student can upload, and only for an assessment on their programme. If the file cannot be stored, no submission row is written.
-- Uploaded files live in `storage/`, which is gitignored. The seed records file names only. Those names do not have bytes on disk.
+- Uploaded files live in `storage/`, which is gitignored. On the staff assessments page, **Open** loads `/api/submissions/{id}?view=1` in a new tab. A PDF is shown by the browser. A Word document is shown as its text. The file name downloads the original. The seed writes a short PDF or DOCX for each sample submission into `storage/seed/`, so those rows can be opened.
 - A grade is an integer from 0 to 100. Below 40 is Fail, 40 is Pass, 60 is Merit, and 70 is Distinction. One grade per student per assessment. The student must be on the assessment's programme. A student sees a grade only when that row is published.
 - Delete is blocked when it would orphan history: a programme with modules or students, a module with assessments, an assessment with submissions or grades, or a student with payments, submissions, or grades. Remove the child records first. Payments, submissions, and grades can be deleted on their own.
 
@@ -141,7 +141,7 @@ These are the edge cases the screens enforce. The server checks them again even 
 - 6 students, listed above, covering Enrolled, Deferred, Withdrawn, and Completed
 - Payments for partial, full, and unpaid positions. Priya Shah has no payments
 - 3 assessments. Database Design Report is still open. The other two deadlines have passed
-- Submissions, including Jonah Adeyemi's late programming coursework
+- Four submissions, each with a file under `storage/seed/`: Amira Hassan, `programming-coursework.pdf` (on time); Jonah Adeyemi, `coursework-final.pdf` (late); Elena Kowalska, `prog101-elena.pdf` (on time); Noah Bennett, `management-case-study.docx` (on time)
 - Grades for Elena (78, Distinction, published), Amira (64, Merit, withheld), Jonah (42, Pass, withheld), and Noah (55, Pass, published)
 
 ## API documentation
@@ -153,7 +153,7 @@ The OpenAPI 3 file is [public/openapi.yaml](public/openapi.yaml), also served at
 The HTTP routes are:
 
 - `GET /api/logout` clears the session
-- `GET /api/submissions/{id}` downloads a submission. Staff can download any file. A student can download only their own
+- `GET /api/submissions/{id}` returns a submission. Staff can read any file. A student can read only their own. With no query, the original PDF or DOCX is downloaded. `?view=1` shows a PDF inline, or returns the text of a DOCX as HTML
 
 Enrolment, fees, assessments, and grades are server actions on the forms, not a separate REST service. `/docs` describes each action, who may call it, and what it refuses.
 
@@ -162,14 +162,15 @@ Enrolment, fees, assessments, and grades are server actions on the forms, not a 
 ```
 prisma/schema.prisma       Programmes, modules, students, payments, assessments, submissions, results
 prisma/migrations          Applied SQL migrations
-prisma/seed.ts             Demo data
+prisma/seed.ts             Demo data, including the sample submission files
+prisma/sample-documents.ts Short PDF and DOCX builders used by the seed
 prisma7.config.ts          Database URL and seed command
 public/openapi.yaml        OpenAPI description of the HTTP routes
 src/app                    App Router pages, /docs, and the two route handlers
 src/components             Forms, shell, and Swagger panel
-src/lib                    Domain rules, Prisma client, auth, and server actions
+src/lib                    Domain rules, Prisma client, auth, file storage, and server actions
 src/proxy.ts               Sends anonymous visitors to /login
-storage/                   Uploaded files. Gitignored
+storage/                   Uploaded files, plus storage/seed for the demo submissions. Gitignored
 ```
 
 ## Data model
@@ -178,7 +179,7 @@ storage/                   Uploaded files. Gitignored
 - A **module** belongs to one programme. Assessments belong to a module, so a student only sees assessments for their programme.
 - A **student** has one current programme, one status, and one student number.
 - A **payment** belongs to one student. Balance and overdue are calculated when the page is read. They are not stored columns.
-- A **submission** is unique per student and assessment. Replacing a file updates that row. `isLate` is saved from the submission time and recalculated if the deadline moves.
+- A **submission** is unique per student and assessment. Replacing a file updates that row. `isLate` is saved from the submission time and recalculated if the deadline moves. The bytes live under `storage/`. Staff open them from the assessments list.
 - A **result** is unique per student and assessment. `published` decides whether the student can see it.
 
 ## AI usage

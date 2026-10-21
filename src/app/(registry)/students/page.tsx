@@ -13,12 +13,13 @@ import { deleteStudent } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
 import { loadStudent } from "@/lib/current-student"
 import { DataTable } from "@/components/data-table"
+import { RecordModal } from "@/components/record-modal"
 import { Notice, RowActions } from "@/components/record-list"
 
 export default function StudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string; q?: string; status?: string; programme?: string }>
+  searchParams: Promise<{ error?: string; q?: string; status?: string; programme?: string }>
 }) {
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading students…</p>}>
@@ -30,7 +31,7 @@ export default function StudentsPage({
 async function StudentsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string; q?: string; status?: string; programme?: string }>
+  searchParams: Promise<{ error?: string; q?: string; status?: string; programme?: string }>
 }) {
   const session = await requireSession()
   if (session.role === "student") {
@@ -71,13 +72,18 @@ async function StudentsContent({
     orderBy: { studentNumber: "asc" },
     include: { programme: { select: { name: true } } },
   })
-  const editing = params.edit ? students.find((student) => student.id === params.edit) ?? await prisma.student.findUnique({ where: { id: params.edit } }) : null
-
   return (
     <>
       <PageHeader
         title="Students"
         description="Add a student from the desk, or they can register themselves. The student ID is issued here and cannot be edited."
+        action={
+          programmes.length > 0 ? (
+            <RecordModal title="Add student" trigger="Add student">
+              <StudentForm programmes={programmes} defaultDueDate={toDateInput(feeDueFrom())} />
+            </RecordModal>
+          ) : null
+        }
       />
       <Notice message={params.error} />
       <form className="mb-4 flex flex-wrap items-end gap-2" action="/students">
@@ -99,34 +105,7 @@ async function StudentsContent({
       </form>
       {programmes.length === 0 ? (
         <p className="mb-6 text-sm text-muted-foreground">Add a programme before enrolling a student.</p>
-      ) : (
-        <section className="mb-8 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <StudentForm
-            programmes={programmes}
-            defaultDueDate={toDateInput(feeDueFrom())}
-            student={
-              editing
-                ? {
-                    id: editing.id,
-                    fullName: editing.fullName,
-                    email: editing.email,
-                    dateOfBirth: toDateInput(editing.dateOfBirth),
-                    programmeId: editing.programmeId,
-                    academicYear: editing.academicYear,
-                    enrolmentStatus: editing.enrolmentStatus,
-                    assignedFee: moneyInput(editing.assignedFee),
-                    feeDueDate: toDateInput(editing.feeDueDate),
-                  }
-                : undefined
-            }
-          />
-          {editing ? (
-            <Link href="/students" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-              Cancel editing
-            </Link>
-          ) : null}
-        </section>
-      )}
+      ) : null}
       <DataTable
         rows={students}
         rowKey={(student) => student.id}
@@ -143,10 +122,27 @@ async function StudentsContent({
             header: "",
             cell: (student) => (
               <RowActions
-                editHref={`/students?edit=${student.id}`}
                 id={student.id}
                 label={student.fullName}
                 action={deleteStudent}
+                edit={
+                  <RecordModal title="Edit student" trigger="Edit" appearance="edit">
+                    <StudentForm
+                      programmes={programmes}
+                      student={{
+                        id: student.id,
+                        fullName: student.fullName,
+                        email: student.email,
+                        dateOfBirth: toDateInput(student.dateOfBirth),
+                        programmeId: student.programmeId,
+                        academicYear: student.academicYear,
+                        enrolmentStatus: student.enrolmentStatus,
+                        assignedFee: moneyInput(student.assignedFee),
+                        feeDueDate: toDateInput(student.feeDueDate),
+                      }}
+                    />
+                  </RecordModal>
+                }
               />
             ),
           },

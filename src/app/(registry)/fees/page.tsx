@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { PageHeader } from "@/components/page-header"
@@ -11,12 +10,13 @@ import { prisma } from "@/lib/prisma"
 import { deletePayment } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
 import { DataTable } from "@/components/data-table"
+import { RecordModal } from "@/components/record-modal"
 import { Notice, RowActions } from "@/components/record-list"
 
 export default function FeesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading fees…</p>}>
@@ -28,7 +28,7 @@ export default function FeesPage({
 async function FeesContent({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const session = await requireSession()
   const params = await searchParams
@@ -75,7 +75,10 @@ async function FeesContent({
       include: { student: { select: { fullName: true, studentNumber: true } } },
     }),
   ])
-  const editing = payments.find((payment) => payment.id === params.edit)
+  const studentOptions = students.map((student) => ({
+    id: student.id,
+    label: `${student.studentNumber} — ${student.fullName}`,
+  }))
   const balances = students.map((student) => {
     const paid = sumPayments(student.payments)
     const balance = outstandingBalance(student.assignedFee, paid)
@@ -87,6 +90,13 @@ async function FeesContent({
       <PageHeader
         title="Fees and payments"
         description="The outstanding balance is the assigned fee minus recorded payments. It is overdue only after the due date."
+        action={
+          students.length > 0 ? (
+            <RecordModal title="Record payment" trigger="Record payment">
+              <PaymentForm students={studentOptions} />
+            </RecordModal>
+          ) : null
+        }
       />
       <Notice message={params.error} />
       <DataTable
@@ -111,32 +121,8 @@ async function FeesContent({
           { key: "due", header: "Due", cell: (row) => formatDisplayDate(row.student.feeDueDate) },
         ]}
       />
-      {students.length > 0 ? (
-        <section className="my-8 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <PaymentForm
-            students={students.map((student) => ({
-              id: student.id,
-              label: `${student.studentNumber} — ${student.fullName}`,
-            }))}
-            payment={
-              editing
-                ? {
-                    id: editing.id,
-                    studentId: editing.studentId,
-                    amount: moneyInput(editing.amount),
-                    paidOn: toDateInput(editing.paidOn),
-                    reference: editing.reference,
-                  }
-                : undefined
-            }
-          />
-          {editing ? (
-            <Link href="/fees" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-              Cancel editing
-            </Link>
-          ) : null}
-        </section>
-      ) : null}
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold tracking-tight">Payments</h2>
       <DataTable
         rows={payments}
         rowKey={(payment) => payment.id}
@@ -151,15 +137,29 @@ async function FeesContent({
             header: "",
             cell: (payment) => (
               <RowActions
-                editHref={`/fees?edit=${payment.id}`}
                 id={payment.id}
                 label={payment.reference}
                 action={deletePayment}
+                edit={
+                  <RecordModal title="Edit payment" trigger="Edit" appearance="edit">
+                    <PaymentForm
+                      students={studentOptions}
+                      payment={{
+                        id: payment.id,
+                        studentId: payment.studentId,
+                        amount: moneyInput(payment.amount),
+                        paidOn: toDateInput(payment.paidOn),
+                        reference: payment.reference,
+                      }}
+                    />
+                  </RecordModal>
+                }
               />
             ),
           },
         ]}
       />
+      </div>
     </>
   )
 }

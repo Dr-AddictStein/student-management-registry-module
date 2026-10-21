@@ -16,7 +16,7 @@ export function SubmissionForm({
   const [state, action, pending] = useActionState(submitWork, null as SubmissionState)
 
   return (
-    <form action={action} className="mt-2 grid justify-items-center gap-2">
+    <form action={action} className="grid gap-3">
       {state?.error ? (
         <p className="text-sm text-destructive" role="alert">
           {state.error}
@@ -30,7 +30,7 @@ export function SubmissionForm({
         required
         className="max-w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
       />
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Uploading…" : replacing ? "Replace file" : "Upload"}
         </Button>

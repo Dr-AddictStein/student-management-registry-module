@@ -1,6 +1,4 @@
-import Link from "next/link"
 import { ConfirmDelete } from "@/components/confirm-delete"
-import { Button } from "@/components/ui/button"
 
 export function Notice({ message }: { message?: string }) {
   if (!message) return null
@@ -8,21 +6,19 @@ export function Notice({ message }: { message?: string }) {
 }
 
 export function RowActions({
-  editHref,
+  edit,
   id,
   label,
   action,
 }: {
-  editHref: string
+  edit: React.ReactNode
   id: string
   label: string
   action: (formData: FormData) => void | Promise<void>
 }) {
   return (
     <div className="flex items-center justify-center gap-2">
-      <Button variant="outline" size="sm" nativeButton={false} render={<Link href={editHref} />}>
-        Edit
-      </Button>
+      {edit}
       <ConfirmDelete action={action} id={id} label={label} />
     </div>
   )

@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
 import { ConfirmDelete } from "@/components/confirm-delete"
@@ -12,12 +11,14 @@ import { prisma } from "@/lib/prisma"
 import { deleteAssessment, deleteSubmission } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
 import { DataTable } from "@/components/data-table"
+import { RecordModal } from "@/components/record-modal"
+import { OpenSubmission } from "@/components/open-submission"
 import { Notice, RowActions } from "@/components/record-list"
 
 export default function AssessmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading assessments…</p>}>
@@ -29,7 +30,7 @@ export default function AssessmentsPage({
 async function AssessmentsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const session = await requireSession()
   const params = await searchParams
@@ -104,7 +105,19 @@ async function AssessmentsContent({
                       "Not submitted"
                     )}
                     {enrolled && (!submission || !closed) ? (
-                      <SubmissionForm assessmentId={assessment.id} replacing={Boolean(submission)} late={closed && !submission} />
+                      <div className="mt-2">
+                        <RecordModal
+                          title={submission ? "Replace file" : "Upload submission"}
+                          trigger={submission ? "Replace file" : "Upload"}
+                          appearance="edit"
+                        >
+                          <SubmissionForm
+                            assessmentId={assessment.id}
+                            replacing={Boolean(submission)}
+                            late={closed && !submission}
+                          />
+                        </RecordModal>
+                      </div>
                     ) : null}
                   </>
                 )
@@ -133,42 +146,28 @@ async function AssessmentsContent({
       },
     }),
   ])
-  const editing = assessments.find((assessment) => assessment.id === params.edit)
+  const moduleOptions = modules.map((module) => ({
+    id: module.id,
+    label: `${module.code} — ${module.name} (${module.programme.name})`,
+  }))
 
   return (
     <>
       <PageHeader
         title="Assessments"
         description="Create an assessment against a module. A past deadline can be saved; work handed in after it is marked late."
+        action={
+          modules.length > 0 ? (
+            <RecordModal title="Add assessment" trigger="Add assessment">
+              <AssessmentForm modules={moduleOptions} />
+            </RecordModal>
+          ) : null
+        }
       />
       <Notice message={params.error} />
       {modules.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Add a module before creating an assessment.</p>
-      ) : (
-        <section className="mb-8 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <AssessmentForm
-            modules={modules.map((module) => ({
-              id: module.id,
-              label: `${module.code} — ${module.name} (${module.programme.name})`,
-            }))}
-            assessment={
-              editing
-                ? {
-                    id: editing.id,
-                    title: editing.title,
-                    moduleId: editing.moduleId,
-                    deadline: toDateTimeInput(editing.deadline),
-                  }
-                : undefined
-            }
-          />
-          {editing ? (
-            <Link href="/assessments" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-              Cancel editing
-            </Link>
-          ) : null}
-        </section>
-      )}
+        <p className="mb-6 text-sm text-muted-foreground">Add a module before creating an assessment.</p>
+      ) : null}
       <DataTable
         rows={assessments}
         rowKey={(assessment) => assessment.id}
@@ -183,10 +182,22 @@ async function AssessmentsContent({
             header: "",
             cell: (assessment) => (
               <RowActions
-                editHref={`/assessments?edit=${assessment.id}`}
                 id={assessment.id}
                 label={assessment.title}
                 action={deleteAssessment}
+                edit={
+                  <RecordModal title="Edit assessment" trigger="Edit" appearance="edit">
+                    <AssessmentForm
+                      modules={moduleOptions}
+                      assessment={{
+                        id: assessment.id,
+                        title: assessment.title,
+                        moduleId: assessment.moduleId,
+                        deadline: toDateTimeInput(assessment.deadline),
+                      }}
+                    />
+                  </RecordModal>
+                }
               />
             ),
           },
@@ -194,7 +205,7 @@ async function AssessmentsContent({
       />
       <h2 className="mt-8 mb-3 text-lg font-semibold tracking-tight">Submissions</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Students upload their own files. A submission can be removed here so the assessment can be deleted.
+        Open a file to read it in a new tab. A PDF opens in the browser, and a Word document opens as text. The file name downloads the original.
       </p>
       <DataTable
         rows={submissions}
@@ -206,13 +217,17 @@ async function AssessmentsContent({
           {
             key: "file",
             header: "File",
+            className: "whitespace-normal",
             cell: (submission) => (
-              <>
-                <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
-                  {submission.originalFileName}
-                </a>
-                {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
-              </>
+              <div className="flex flex-col items-center gap-2">
+                <span>
+                  <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
+                    {submission.originalFileName}
+                  </a>
+                  {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
+                </span>
+                <OpenSubmission id={submission.id} />
+              </div>
             ),
           },
           { key: "handed", header: "Handed in (UTC)", cell: (submission) => toDateTimeInput(submission.submittedAt).replace("T", " ") },

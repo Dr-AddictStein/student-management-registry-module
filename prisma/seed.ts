@@ -1,8 +1,12 @@
 import "dotenv/config"
+import { mkdir, writeFile } from "node:fs/promises"
+import path from "node:path"
 import { hash } from "bcryptjs"
 import { PrismaPg } from "@prisma/adapter-pg"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { classifyGrade, formatStudentNumber } from "../src/lib/domain"
+import { storedPath } from "../src/lib/files"
+import { docxDocument, pdfDocument } from "./sample-documents"
 
 const DEMO_STUDENT_PASSWORD = "Password123!"
 
@@ -17,6 +21,12 @@ const prisma = new PrismaClient({
 })
 
 const day = (isoDate: string) => new Date(`${isoDate}T00:00:00.000Z`)
+
+async function writeSeedFile(storedFileName: string, bytes: Buffer) {
+  const destination = storedPath(storedFileName)
+  await mkdir(path.dirname(destination), { recursive: true })
+  await writeFile(destination, bytes)
+}
 
 async function main() {
   const passwordHash = await hash(DEMO_STUDENT_PASSWORD, 12)
@@ -224,6 +234,30 @@ async function main() {
   const jonahSubmittedAt = new Date("2026-09-03T09:40:00.000Z")
   const elenaSubmittedAt = new Date("2026-08-01T16:05:00.000Z")
   const noahSubmittedAt = new Date("2026-09-18T11:20:00.000Z")
+  const amiraFile = pdfDocument([
+    "Programming Fundamentals Coursework",
+    "Submitted by Amira Hassan (SMS-2025-0001).",
+    "This coursework covers variables, control flow, and functions.",
+  ])
+  const jonahFile = pdfDocument([
+    "Programming Fundamentals Coursework",
+    "Submitted by Jonah Adeyemi (SMS-2025-0002).",
+    "This file was handed in after the deadline.",
+  ])
+  const elenaFile = pdfDocument([
+    "Programming Fundamentals Coursework",
+    "Submitted by Elena Kowalska (SMS-2025-0005).",
+    "Completed programme submission for PROG101.",
+  ])
+  const noahFile = docxDocument([
+    "Principles of Management case study",
+    "Submitted by Noah Bennett (SMS-2025-0006).",
+    "The case compares two approaches to team leadership and recommends a weekly review.",
+  ])
+  await writeSeedFile("seed/amira-prog101.pdf", amiraFile)
+  await writeSeedFile("seed/jonah-prog101.pdf", jonahFile)
+  await writeSeedFile("seed/elena-prog101.pdf", elenaFile)
+  await writeSeedFile("seed/noah-mgmt101.docx", noahFile)
 
   await prisma.submission.createMany({
     data: [
@@ -233,7 +267,7 @@ async function main() {
         originalFileName: "programming-coursework.pdf",
         storedFileName: "seed/amira-prog101.pdf",
         mimeType: "application/pdf",
-        sizeBytes: 184320,
+        sizeBytes: amiraFile.byteLength,
         submittedAt: amiraSubmittedAt,
         isLate: amiraSubmittedAt > programmingCoursework.deadline,
       },
@@ -243,7 +277,7 @@ async function main() {
         originalFileName: "coursework-final.pdf",
         storedFileName: "seed/jonah-prog101.pdf",
         mimeType: "application/pdf",
-        sizeBytes: 210448,
+        sizeBytes: jonahFile.byteLength,
         submittedAt: jonahSubmittedAt,
         isLate: jonahSubmittedAt > programmingCoursework.deadline,
       },
@@ -253,7 +287,7 @@ async function main() {
         originalFileName: "prog101-elena.pdf",
         storedFileName: "seed/elena-prog101.pdf",
         mimeType: "application/pdf",
-        sizeBytes: 156200,
+        sizeBytes: elenaFile.byteLength,
         submittedAt: elenaSubmittedAt,
         isLate: elenaSubmittedAt > programmingCoursework.deadline,
       },
@@ -264,7 +298,7 @@ async function main() {
         storedFileName: "seed/noah-mgmt101.docx",
         mimeType:
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        sizeBytes: 98432,
+        sizeBytes: noahFile.byteLength,
         submittedAt: noahSubmittedAt,
         isLate: noahSubmittedAt > managementCase.deadline,
       },

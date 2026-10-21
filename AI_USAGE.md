@@ -47,6 +47,7 @@ A few drafts were plausible and wrong. Those are the moments that matter.
 - File upload writes the bytes first and inserts the submission row second. If the insert fails, the new file is removed. A failed upload does not leave a row pointing at nothing.
 - Next.js was running with cache components turned on. The pages then reloaded forever, because a Suspense boundary never finished and the browser asked for the same URL again. I turned that mode off. The registry is session and database data. Caching the shell was not worth a reload loop.
 - Staff tried to create records by typing into Neon. I stopped that path. Programmes, modules, students, assessments, payments, and grades are created in the screens. The seed script remains, because the brief asks for demo data, and it is explicit that it replaces the current rows.
+- A submission list that only named the file was not enough for the registry desk. Staff need to read what the student handed in. The first viewer put the PDF inside a dialog, and the browser left that frame blank. **Open** now uses a new tab. `?view=1` returns the PDF inline, and a Word file as HTML built from the document text. The seed writes those sample files into `storage/seed/`, so the demo rows open without a separate upload.
 
 I also checked the unhappy paths in code, not only the happy form. A closed submission cannot be replaced. A deferred student cannot upload. A student cannot submit to another programme. An empty file, a renamed text file, and a file over 10 MB are refused. Those checks passed against the seeded database, and the temporary file was removed afterward.
 
@@ -56,6 +57,7 @@ I did not treat a green diff as a finished feature.
 
 - `npx tsc --noEmit` and `npm run lint`
 - The app in the browser: staff sign-in, a programme created from the screen and visible in the database, student sign-in, the upload control on an open assessment, and no replace control on a closed one
+- From the staff assessments page, **Open** on a seeded PDF and on Noah Bennett's Word file, each in a new tab
 - The seed accounts in the README match `prisma/seed.ts`, including which grade is published and which submission is late
 
 The browser check mattered. The reload loop looked like a slow page until the server log showed the same `GET` repeating. That is the kind of failure a model will not notice unless you watch the running app.

@@ -42,7 +42,7 @@ export function SwaggerPanel() {
       <h2 className="text-xl font-semibold tracking-tight">Swagger UI</h2>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         Loaded from the OpenAPI file. Authorize with the <code>sms_session</code> cookie
-        before trying the download route.
+        before trying the submission route.
       </p>
       {failed ? (
         <p className="mt-4 text-sm text-muted-foreground">

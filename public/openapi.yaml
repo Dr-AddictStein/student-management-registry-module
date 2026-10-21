@@ -20,7 +20,7 @@ tags:
   - name: Session
     description: Cookie session named `sms_session`.
   - name: Submissions
-    description: Download a stored PDF or DOCX.
+    description: Open or download a stored PDF or DOCX.
 paths:
   /api/logout:
     get:
@@ -47,11 +47,12 @@ paths:
     get:
       tags: [Submissions]
       operationId: downloadSubmission
-      summary: Download a submission file
+      summary: Open or download a submission file
       description: |
-        Staff can download any submission. A student can download only their own.
-        Seeded rows point at file names that are not on disk, so those downloads
-        return 404 until a real file is uploaded.
+        Staff can open any submission. A student can open only their own.
+        Without `view`, the original PDF or DOCX is downloaded.
+        With `view=1`, a PDF is shown inline and a DOCX is returned as an HTML preview of its text.
+        The seed writes those sample files under `storage/seed/`.
       security:
         - sessionCookie: []
       parameters:
@@ -61,9 +62,17 @@ paths:
           description: Submission id.
           schema:
             type: string
+        - name: view
+          in: query
+          required: false
+          description: Pass 1 to open the file in the browser instead of downloading it.
+          schema:
+            type: string
+            enum:
+              - "1"
       responses:
         "200":
-          description: The stored PDF or DOCX.
+          description: The stored PDF or DOCX, or an HTML preview when view=1 and the file is DOCX.
           headers:
             Content-Type:
               schema:
@@ -72,10 +81,14 @@ paths:
                   - application/pdf
                   - application/vnd.openxmlformats-officedocument.wordprocessingml.document
                   - application/octet-stream
+                  - text/html
             Content-Disposition:
               schema:
                 type: string
-              description: Attachment, using the original file name.
+              description: |
+                Present for a PDF or DOCX body. Inline when view=1 for a PDF.
+                Attachment for a download, using the original file name.
+                Omitted when view=1 returns the HTML preview of a Word document.
           content:
             application/pdf:
               schema:
@@ -85,6 +98,9 @@ paths:
               schema:
                 type: string
                 format: binary
+            text/html:
+              schema:
+                type: string
         "307":
           description: No session. Redirect to `/login`.
         "403":
@@ -95,9 +111,15 @@ paths:
                 type: string
                 example: You can only download your own submission.
         "404":
-          description: Unknown submission, or the file is not on disk.
+          description: |
+            Unknown submission, or the file is not on disk.
+            With `view=1` the body is a short HTML page. Otherwise it is plain text.
           content:
             text/plain:
+              schema:
+                type: string
+                example: This file is not on disk.
+            text/html:
               schema:
                 type: string
 components:

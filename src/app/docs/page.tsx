@@ -17,7 +17,7 @@ const routes = [
     method: "GET",
     path: "/api/submissions/{id}",
     auth: "Staff, or the student who owns the file",
-    result: "Returns the PDF or DOCX. 403 if a student requests someone else's file. 404 if the row or the file is missing. No session redirects to /login.",
+    result: "Without a query, downloads the original PDF or DOCX. ?view=1 shows a PDF inline, or the text of a DOCX as HTML. 403 if a student requests someone else's file. 404 if the row or the file is missing. No session redirects to /login.",
   },
 ]
 
@@ -99,7 +99,7 @@ export default function DocsPage() {
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">API documentation</h1>
       <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
         The screens call Next.js Server Actions. Two HTTP routes sit beside those actions:
-        ending a session, and downloading a submission. The machine-readable description of
+        ending a session, and opening or downloading a submission. The machine-readable description of
         those routes is the OpenAPI document at{" "}
         <a className="underline-offset-4 hover:underline" href="/openapi.yaml">
           /openapi.yaml

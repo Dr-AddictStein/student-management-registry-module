@@ -432,16 +432,16 @@ export async function deleteResult(formData: FormData) {
 }
 
 function uniqueTarget(error: unknown) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "P2002" &&
-    "meta" in error
-  ) {
-    const target = (error as { meta?: { target?: unknown } }).meta?.target
-    if (Array.isArray(target)) return target.map(String)
-    if (typeof target === "string") return [target]
+  if (typeof error !== "object" || error === null || !("code" in error) || error.code !== "P2002") {
+    return null
   }
-  return null
+
+  const meta = "meta" in error ? (error as { meta?: { target?: unknown } }).meta : undefined
+  const target = meta?.target
+  if (Array.isArray(target)) return target.map(String)
+  if (typeof target === "string") return [target]
+
+  const message = error instanceof Error ? error.message : ""
+  const constraint = message.match(/constraint: `([^`]+)`/)?.[1]
+  return [constraint ?? ""]
 }

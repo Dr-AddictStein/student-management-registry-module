@@ -1,6 +1,6 @@
-import Link from "next/link"
 import { Suspense } from "react"
 import { PageHeader } from "@/components/page-header"
+import { RecordModal } from "@/components/record-modal"
 import { ResultForm } from "@/components/registry-forms"
 import { Badge } from "@/components/ui/badge"
 import { CLASSIFICATION_LABELS } from "@/lib/domain"
@@ -13,7 +13,7 @@ import { Notice, RowActions } from "@/components/record-list"
 export default function ResultsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading results…</p>}>
@@ -25,7 +25,7 @@ export default function ResultsPage({
 async function ResultsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string; error?: string }>
+  searchParams: Promise<{ error?: string }>
 }) {
   const session = await requireSession()
   const params = await searchParams
@@ -74,46 +74,32 @@ async function ResultsContent({
       },
     }),
   ])
-  const editing = results.find((result) => result.id === params.edit)
+  const studentOptions = students.map((student) => ({
+    id: student.id,
+    label: `${student.studentNumber} — ${student.fullName}`,
+  }))
+  const assessmentOptions = assessments.map((assessment) => ({
+    id: assessment.id,
+    label: `${assessment.module.code} — ${assessment.title}`,
+  }))
+  const canGrade = students.length > 0 && assessments.length > 0
 
   return (
     <>
       <PageHeader
         title="Marksheet and results"
         description="Enter one grade from 0 to 100. Pass is 40, Merit is 60, and Distinction is 70. The student sees the grade only when it is published."
+        action={
+          canGrade ? (
+            <RecordModal title="Add grade" trigger="Add grade">
+              <ResultForm students={studentOptions} assessments={assessmentOptions} />
+            </RecordModal>
+          ) : null
+        }
       />
       <Notice message={params.error} />
-      {students.length === 0 || assessments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Add a student and an assessment before entering a grade.</p>
-      ) : (
-        <section className="mb-8 rounded-xl bg-card p-4 ring-1 ring-foreground/10">
-          <ResultForm
-            students={students.map((student) => ({
-              id: student.id,
-              label: `${student.studentNumber} — ${student.fullName}`,
-            }))}
-            assessments={assessments.map((assessment) => ({
-              id: assessment.id,
-              label: `${assessment.module.code} — ${assessment.title}`,
-            }))}
-            result={
-              editing
-                ? {
-                    id: editing.id,
-                    studentId: editing.studentId,
-                    assessmentId: editing.assessmentId,
-                    grade: editing.grade,
-                    published: editing.published,
-                  }
-                : undefined
-            }
-          />
-          {editing ? (
-            <Link href="/results" className="mt-3 inline-block text-sm underline-offset-4 hover:underline">
-              Cancel editing
-            </Link>
-          ) : null}
-        </section>
+      {canGrade ? null : (
+        <p className="mb-6 text-sm text-muted-foreground">Add a student and an assessment before entering a grade.</p>
       )}
       <DataTable
         rows={results}
@@ -134,10 +120,24 @@ async function ResultsContent({
             header: "",
             cell: (result) => (
               <RowActions
-                editHref={`/results?edit=${result.id}`}
                 id={result.id}
                 label="this grade"
                 action={deleteResult}
+                edit={
+                  <RecordModal title="Edit grade" trigger="Edit" appearance="edit">
+                    <ResultForm
+                      students={studentOptions}
+                      assessments={assessmentOptions}
+                      result={{
+                        id: result.id,
+                        studentId: result.studentId,
+                        assessmentId: result.assessmentId,
+                        grade: result.grade,
+                        published: result.published,
+                      }}
+                    />
+                  </RecordModal>
+                }
               />
             ),
           },
