@@ -2,7 +2,7 @@
 
 A registry module for a student management system. Staff enrol students, track fees, open assessments, and publish results. Students submit work and see only the grades that have been released.
 
-Students register themselves and sign in to a student dashboard. Registry staff sign in with a fixed account and create programmes, modules, students, assessments, payments, and grades in the app. File upload is not wired up yet.
+Students register themselves and sign in to a student dashboard. Registry staff sign in with a fixed account and create programmes, modules, students, assessments, payments, and grades in the app. Enrolled students upload one PDF or DOCX per assessment.
 
 ## Stack
 
@@ -76,7 +76,7 @@ Prisma reads this from `prisma7.config.ts`. Next.js reads the same `.env` file.
 - Payments, including students who have paid in full, paid in part, or paid nothing
 - 3 assessments, on-time and late submission records, and grades that are either published or withheld
 
-Submission rows point at file names only. The upload folder is not created by the seed.
+Submission rows in the seed point at file names only. The PDF or DOCX itself is stored under `storage/` when a student uploads it, and that folder is not committed.
 
 ## Project layout
 
@@ -90,7 +90,7 @@ src/lib/domain.ts       Student IDs and grade bands
 src/lib/prisma.ts       Shared Prisma client
 ```
 
-Uploaded files will live in `storage/`, which is gitignored.
+Uploaded files live in `storage/`, which is gitignored. A student can replace a file until the deadline. The first file after the deadline is kept and marked late.
 
 ## Data model
 
@@ -103,4 +103,4 @@ Uploaded files will live in `storage/`, which is gitignored.
 
 ## AI usage
 
-The project skeleton and the sign-in flow were set up in Cursor with Grok. Student registration, the fixed staff account, and the separate dashboards were implemented with that assistance. Later features should be added to this note so it stays an accurate account of what was produced with AI and what was decided by hand.
+The app was built in Cursor with Grok. That covers the skeleton, sign-in and student registration, the staff screens for programmes, modules, students, fees, assessments, and grades, and the student file upload. The registry rules — student ID format, the fee copied at enrolment, when a balance is overdue, the late-submission cutoff, and publish or withhold — were chosen for this workflow and then implemented with that assistance.

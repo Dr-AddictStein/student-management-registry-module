@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { SubmissionForm } from "@/components/submission-form"
 import { Badge } from "@/components/ui/badge"
 import { formatDisplayDate } from "@/lib/domain"
 import { toDateTimeInput } from "@/lib/inputs"
@@ -43,7 +44,7 @@ async function AssessmentsContent({
   if (session.role === "student") {
     const student = await prisma.student.findUnique({
       where: { id: session.studentId },
-      select: { programmeId: true },
+      select: { programmeId: true, enrolmentStatus: true },
     })
     if (!student) redirect("/api/logout")
     const assessments = await prisma.assessment.findMany({
@@ -51,15 +52,25 @@ async function AssessmentsContent({
       orderBy: { deadline: "asc" },
       include: {
         module: { select: { code: true, name: true } },
-        submissions: { where: { studentId: session.studentId }, select: { submittedAt: true, isLate: true, originalFileName: true } },
+        submissions: {
+          where: { studentId: session.studentId },
+          select: { id: true, submittedAt: true, isLate: true, originalFileName: true },
+        },
       },
     })
+    const enrolled = student.enrolmentStatus === "ENROLLED"
+    const now = new Date()
     return (
       <>
         <PageHeader
           title="Assessments"
-          description="These are the assessments on your programme. File upload will use the submission row staff can already see."
+          description="Upload one PDF or DOCX for each assessment. You can replace it until the deadline. A first file handed in after the deadline is kept and marked late."
         />
+        {enrolled ? null : (
+          <p className="mb-4 text-sm text-muted-foreground">
+            Only enrolled students can submit work. You can still see what you have already handed in.
+          </p>
+        )}
         <RecordTable>
           <Table>
             <TableHeader>
@@ -76,20 +87,29 @@ async function AssessmentsContent({
               ) : (
                 assessments.map((assessment) => {
                   const submission = assessment.submissions[0]
+                  const closed = now > assessment.deadline
                   return (
                     <TableRow key={assessment.id}>
                       <TableCell>{assessment.title}</TableCell>
                       <TableCell>{assessment.module.code}</TableCell>
-                      <TableCell>{formatDisplayDate(assessment.deadline)} {assessment.deadline.toISOString().slice(11, 16)}</TableCell>
                       <TableCell>
+                        {formatDisplayDate(assessment.deadline)} {assessment.deadline.toISOString().slice(11, 16)}
+                        {closed ? <Badge variant="outline" className="ml-2">Closed</Badge> : null}
+                      </TableCell>
+                      <TableCell className="whitespace-normal">
                         {submission ? (
-                          <span className="inline-flex items-center gap-2">
-                            {submission.originalFileName}
+                          <span className="inline-flex flex-wrap items-center gap-2">
+                            <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
+                              {submission.originalFileName}
+                            </a>
                             {submission.isLate ? <Badge variant="destructive">Late</Badge> : <Badge variant="secondary">On time</Badge>}
                           </span>
                         ) : (
                           "Not submitted"
                         )}
+                        {enrolled && (!submission || !closed) ? (
+                          <SubmissionForm assessmentId={assessment.id} replacing={Boolean(submission)} late={closed && !submission} />
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   )
@@ -214,7 +234,9 @@ async function AssessmentsContent({
                   <TableCell>{submission.student.studentNumber} {submission.student.fullName}</TableCell>
                   <TableCell>{submission.assessment.title}</TableCell>
                   <TableCell>
-                    {submission.originalFileName}
+                    <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
+                      {submission.originalFileName}
+                    </a>
                     {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
                   </TableCell>
                   <TableCell>{toDateTimeInput(submission.submittedAt).replace("T", " ")}</TableCell>

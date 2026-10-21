@@ -11,6 +11,7 @@ import {
   type EnrolmentStatus,
 } from "@/lib/domain"
 import { EnrolmentError, createStudent } from "@/lib/enrolment"
+import { removeStoredFile } from "@/lib/files"
 import { outstandingBalance, sumPayments } from "@/lib/fees"
 import { parseMoney, parseUtcDate, parseUtcDateTime, todayUtcDate } from "@/lib/inputs"
 import { hashPassword } from "@/lib/password"
@@ -408,7 +409,14 @@ export async function deleteSubmission(formData: FormData) {
   if (denied) redirect("/assessments")
 
   const id = String(formData.get("id") ?? "")
-  await prisma.submission.delete({ where: { id } }).catch(() => null)
+  const submission = await prisma.submission.findUnique({
+    where: { id },
+    select: { storedFileName: true },
+  })
+  if (submission) {
+    await prisma.submission.delete({ where: { id } })
+    await removeStoredFile(submission.storedFileName).catch(() => null)
+  }
   refresh(["/assessments"])
   redirect("/assessments")
 }
