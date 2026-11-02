@@ -1,24 +1,25 @@
 import { redirect } from "next/navigation"
 import { Suspense } from "react"
-import { ConfirmDelete } from "@/components/confirm-delete"
+import { AssessmentSections } from "@/components/assessment-sections"
 import { PageHeader } from "@/components/page-header"
 import { AssessmentForm } from "@/components/registry-forms"
 import { SubmissionForm } from "@/components/submission-form"
 import { Badge } from "@/components/ui/badge"
+import { DataTable } from "@/components/data-table"
+import { ListPagination } from "@/components/list-pagination"
+import { RecordModal } from "@/components/record-modal"
+import { Notice, RowActions } from "@/components/record-list"
 import { formatDisplayDate } from "@/lib/domain"
 import { toDateTimeInput } from "@/lib/inputs"
+import { pageHref, paginate, parsePage } from "@/lib/pagination"
 import { prisma } from "@/lib/prisma"
-import { deleteAssessment, deleteSubmission } from "@/lib/registry-actions"
+import { deleteAssessment } from "@/lib/registry-actions"
 import { requireSession } from "@/lib/session"
-import { DataTable } from "@/components/data-table"
-import { RecordModal } from "@/components/record-modal"
-import { OpenSubmission } from "@/components/open-submission"
-import { Notice, RowActions } from "@/components/record-list"
 
 export default function AssessmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; page?: string }>
 }) {
   return (
     <Suspense fallback={<p className="text-sm text-muted-foreground">Loading assessments…</p>}>
@@ -30,7 +31,7 @@ export default function AssessmentsPage({
 async function AssessmentsContent({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; page?: string }>
 }) {
   const session = await requireSession()
   const params = await searchParams
@@ -129,23 +130,23 @@ async function AssessmentsContent({
     )
   }
 
-  const [modules, assessments, submissions] = await Promise.all([
+  const requested = parsePage(params.page)
+  const [modules, total] = await Promise.all([
     prisma.module.findMany({
       orderBy: { code: "asc" },
       include: { programme: { select: { name: true } } },
     }),
-    prisma.assessment.findMany({
-      orderBy: { deadline: "asc" },
-      include: { module: { select: { code: true, name: true } }, _count: { select: { submissions: true } } },
-    }),
-    prisma.submission.findMany({
-      orderBy: { submittedAt: "desc" },
-      include: {
-        student: { select: { fullName: true, studentNumber: true } },
-        assessment: { select: { title: true } },
-      },
-    }),
+    prisma.assessment.count(),
   ])
+  const page = paginate(requested, total)
+  if (requested !== page.current) redirect(pageHref("/assessments", page.current))
+
+  const assessments = await prisma.assessment.findMany({
+    orderBy: [{ deadline: "asc" }, { id: "asc" }],
+    skip: page.skip,
+    take: page.pageSize,
+    include: { module: { select: { code: true, name: true } }, _count: { select: { submissions: true } } },
+  })
   const moduleOptions = modules.map((module) => ({
     id: module.id,
     label: `${module.code} — ${module.name} (${module.programme.name})`,
@@ -153,6 +154,7 @@ async function AssessmentsContent({
 
   return (
     <>
+      <AssessmentSections current="assessments" />
       <PageHeader
         title="Assessments"
         description="Create an assessment against a module. A past deadline can be saved; work handed in after it is marked late."
@@ -203,43 +205,7 @@ async function AssessmentsContent({
           },
         ]}
       />
-      <h2 className="mt-8 mb-3 text-lg font-semibold tracking-tight">Submissions</h2>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Open a file to read it in a new tab. A PDF opens in the browser, and a Word document opens as text. The file name downloads the original.
-      </p>
-      <DataTable
-        rows={submissions}
-        rowKey={(submission) => submission.id}
-        empty="No submissions yet."
-        columns={[
-          { key: "student", header: "Student", cell: (submission) => `${submission.student.studentNumber} ${submission.student.fullName}` },
-          { key: "assessment", header: "Assessment", cell: (submission) => submission.assessment.title },
-          {
-            key: "file",
-            header: "File",
-            className: "whitespace-normal",
-            cell: (submission) => (
-              <div className="flex flex-col items-center gap-2">
-                <span>
-                  <a href={`/api/submissions/${submission.id}`} className="underline-offset-4 hover:underline">
-                    {submission.originalFileName}
-                  </a>
-                  {submission.isLate ? <Badge variant="destructive" className="ml-2">Late</Badge> : null}
-                </span>
-                <OpenSubmission id={submission.id} />
-              </div>
-            ),
-          },
-          { key: "handed", header: "Handed in (UTC)", cell: (submission) => toDateTimeInput(submission.submittedAt).replace("T", " ") },
-          {
-            key: "actions",
-            header: "",
-            cell: (submission) => (
-              <ConfirmDelete action={deleteSubmission} id={submission.id} label={submission.originalFileName} />
-            ),
-          },
-        ]}
-      />
+      <ListPagination pathname="/assessments" {...page} />
     </>
   )
 }

@@ -107,7 +107,10 @@ function ShellNav({ items }: { items: NavItem[] }) {
   return (
     <nav className="flex gap-1 overflow-x-auto px-3 pb-3 md:flex-1 md:flex-col md:overflow-visible md:px-3 md:pb-0">
       {items.map((item) => {
-        const active = pathname === item.href
+        const active =
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`)
         const Icon = item.icon
         return (
           <Link

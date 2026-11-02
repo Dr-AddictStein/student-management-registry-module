@@ -272,7 +272,7 @@ export async function saveAssessment(_state: FormState, formData: FormData): Pro
     await prisma.assessment.create({ data: { title, moduleId, deadline } })
   }
 
-  refresh(["/assessments", "/results"])
+  refresh(["/assessments", "/assessments/submissions", "/results"])
   redirect("/assessments")
 }
 
@@ -417,8 +417,8 @@ export async function deleteSubmission(formData: FormData) {
     await prisma.submission.delete({ where: { id } })
     await removeStoredFile(submission.storedFileName).catch(() => null)
   }
-  refresh(["/assessments"])
-  redirect("/assessments")
+  refresh(["/assessments", "/assessments/submissions"])
+  redirect("/assessments/submissions")
 }
 
 export async function deleteResult(formData: FormData) {

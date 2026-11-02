@@ -33,6 +33,7 @@ export async function submitWork(_state: SubmissionState, formData: FormData): P
   if ("error" in result) return result
 
   revalidatePath("/assessments")
+  revalidatePath("/assessments/submissions")
   redirect("/assessments")
 }
 
