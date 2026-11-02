@@ -15,6 +15,16 @@ export function paginate(page: number, total: number, pageSize = PAGE_SIZE) {
   return { current, pageCount, skip, pageSize, from, to, total }
 }
 
-export function pageHref(pathname: string, page: number) {
-  return page <= 1 ? pathname : `${pathname}?page=${page}`
+export function pageHref(
+  pathname: string,
+  page: number,
+  query?: Record<string, string | undefined>,
+) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value) params.set(key, value)
+  }
+  if (page > 1) params.set("page", String(page))
+  const search = params.toString()
+  return search ? `${pathname}?${search}` : pathname
 }

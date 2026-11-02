@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 
 export function ListPagination({
   pathname,
+  search,
   current,
   pageCount,
   from,
@@ -12,6 +13,7 @@ export function ListPagination({
   total,
 }: {
   pathname: string
+  search?: Record<string, string | undefined>
   current: number
   pageCount: number
   from: number
@@ -21,6 +23,7 @@ export function ListPagination({
   if (total === 0) return null
 
   const pages = visiblePages(current, pageCount)
+  const href = (page: number) => pageHref(pathname, page, search)
 
   return (
     <nav aria-label="Pagination" className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -28,15 +31,15 @@ export function ListPagination({
         Showing {from}–{to} of {total}
       </p>
       <div className="flex items-center gap-1">
-        <PageLink href={pageHref(pathname, current - 1)} disabled={current <= 1}>
+        <PageLink href={href(current - 1)} disabled={current <= 1}>
           Previous
         </PageLink>
         {pages.map((page) => (
-          <PageLink key={page} href={pageHref(pathname, page)} current={page === current}>
+          <PageLink key={page} href={href(page)} current={page === current}>
             {page}
           </PageLink>
         ))}
-        <PageLink href={pageHref(pathname, current + 1)} disabled={current >= pageCount}>
+        <PageLink href={href(current + 1)} disabled={current >= pageCount}>
           Next
         </PageLink>
       </div>
